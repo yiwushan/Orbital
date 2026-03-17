@@ -23,6 +23,17 @@ if(GIT_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET
     )
+    # 检测是否有未提交的更改
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} status --porcelain
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_DIRTY
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(NOT "${GIT_DIRTY}" STREQUAL "")
+        set(GIT_HASH "${GIT_HASH}-dirty")
+    endif()
 endif()
 
 # 如果没获取到（比如源码不是git克隆的），给个默认值
@@ -86,3 +97,6 @@ qt_add_qml_module(appOrbital
 target_link_libraries(appOrbital
     PRIVATE Qt6::Quick Qt6::Core
 )
+
+# 将scripts/run.sh复制到构建目录
+configure_file(${CMAKE_SOURCE_DIR}/scripts/run.sh ${CMAKE_BINARY_DIR}/run.sh COPYONLY)
