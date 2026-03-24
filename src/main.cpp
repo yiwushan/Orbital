@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("appBuildHash", buildHash);
     engine.rootContext()->setContextProperty("appName", "Orbital");
 
-    const QUrl url(u"qrc:/MyDesktop/Backend/qml/Main.qml"_qs);
+    const QUrl url(QStringLiteral("qrc:/MyDesktop/Backend/qml/Main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl)

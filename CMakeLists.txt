@@ -13,6 +13,10 @@ set(CMAKE_AUTOUIC ON)
 # 查找 Qt 库
 find_package(Qt6 COMPONENTS Quick Core Network REQUIRED)
 
+# Adopt current Qt QML module policies explicitly.
+qt_policy(SET QTP0001 NEW)
+qt_policy(SET QTP0004 NEW)
+
 # 获取当前 Git 提交的短哈希值
 find_package(Git)
 if(GIT_FOUND)
@@ -66,6 +70,7 @@ target_compile_definitions(appOrbital
 qt_add_qml_module(appOrbital
     URI "MyDesktop.Backend"
     VERSION 1.0
+    RESOURCE_PREFIX "/"
     QML_FILES 
         qml/Main.qml
         qml/CircleProgress.qml
