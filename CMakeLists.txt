@@ -120,6 +120,7 @@ qt_add_qml_module(appOrbital
         assets/eye.svg
         assets/eye-off.svg
         assets/info.svg
+        assets/linux.svg
         assets/delete.svg
         assets/back.svg
         assets/shift.svg

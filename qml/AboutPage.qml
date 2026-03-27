@@ -161,6 +161,18 @@ Page {
                     value: backend ? backend.osVersion : "--"
                     icon: "qrc:/MyDesktop/Backend/assets/settings.svg" 
                 }
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 1; color: "#333"
+                    Layout.topMargin: 10; Layout.bottomMargin: 10
+                }
+
+                InfoRow {
+                    label: "Kernel"
+                    value: backend ? backend.kernelVersion : "--"
+                    icon: "qrc:/MyDesktop/Backend/assets/linux.svg"
+                    multiline: true
+                }
             }
         }
     }
@@ -170,8 +182,10 @@ Page {
         property string label: ""
         property string value: ""
         property string icon: ""
+        property bool multiline: false
 
         spacing: 15
+        Layout.fillWidth: true
         
         // 左侧图标
         Item {
@@ -198,8 +212,9 @@ Page {
                 text: parent.parent.value
                 color: "white"
                 font.pixelSize: 16
-                elide: Text.ElideRight
                 Layout.fillWidth: true
+                wrapMode: parent.parent.multiline ? Text.WrapAnywhere : Text.NoWrap
+                elide: parent.parent.multiline ? Text.ElideNone : Text.ElideRight
             }
         }
     }

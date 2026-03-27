@@ -158,6 +158,11 @@ QString SystemMonitor::osVersion() const
     return Backend::readOsVersion();
 }
 
+QString SystemMonitor::kernelVersion() const
+{
+    return Backend::readKernelVersion();
+}
+
 QObject *SystemMonitor::ledBackend() const
 {
     return m_ledBackend;

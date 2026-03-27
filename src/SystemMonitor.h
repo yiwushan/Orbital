@@ -36,6 +36,7 @@ class SystemMonitor : public QObject
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled WRITE setWifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(QVariantMap currentWifiDetails READ currentWifiDetails NOTIFY currentWifiDetailsChanged)
     Q_PROPERTY(QString osVersion READ osVersion CONSTANT)
+    Q_PROPERTY(QString kernelVersion READ kernelVersion CONSTANT)
     Q_PROPERTY(QObject* ledBackend READ ledBackend CONSTANT)
 
 public:
@@ -64,6 +65,7 @@ public:
     bool wifiEnabled() const;
     QVariantMap currentWifiDetails() const;
     QString osVersion() const;
+    QString kernelVersion() const;
     QObject *ledBackend() const;
 
     void setWifiEnabled(bool enable);
