@@ -6,6 +6,8 @@ Item {
     id: root
 
     required property var terminalBackend
+    focus: true
+    activeFocusOnTab: true
 
     property string fontFamily: "Noto Sans Mono"
     property int fontPixelSize: terminalBackend ? terminalBackend.fontPixelSize : 15
@@ -146,6 +148,19 @@ Item {
         terminalBackend.resizeTerminal(computedColumns, computedRows)
     }
 
+    function isModifierOnlyKey(key) {
+        return key === Qt.Key_Shift
+            || key === Qt.Key_Control
+            || key === Qt.Key_Alt
+            || key === Qt.Key_Meta
+    }
+
+    function hasControlLikeModifier(modifiers) {
+        return (modifiers & Qt.ControlModifier)
+            || (modifiers & Qt.AltModifier)
+            || (modifiers & Qt.MetaModifier)
+    }
+
     Rectangle {
         anchors.fill: parent
         color: "#0f1117"
@@ -232,6 +247,33 @@ Item {
         }
     }
 
+    Keys.onPressed: function(event) {
+        if (!root.terminalBackend || !root.terminalBackend.running)
+            return
+
+        if (root.isModifierOnlyKey(event.key))
+            return
+
+        if (event.modifiers & Qt.ControlModifier) {
+            root.terminalBackend.sendKey(event.key, event.modifiers)
+            event.accepted = true
+            return
+        }
+
+        if (event.text.length > 0) {
+            if (root.hasControlLikeModifier(event.modifiers))
+                root.terminalBackend.sendCharacter(event.text, event.modifiers)
+            else
+                root.terminalBackend.sendText(event.text)
+
+            event.accepted = true
+            return
+        }
+
+        root.terminalBackend.sendKey(event.key, event.modifiers)
+        event.accepted = true
+    }
+
     onWidthChanged: syncTerminalSize()
     onHeightChanged: syncTerminalSize()
     onCharWidthChanged: syncTerminalSize()
@@ -240,5 +282,6 @@ Item {
     Component.onCompleted: {
         syncTerminalSize()
         scrollToBottom()
+        forceActiveFocus()
     }
 }

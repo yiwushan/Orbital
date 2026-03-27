@@ -26,6 +26,12 @@ Page {
         showToast("Font " + terminalBackend.fontPixelSize + " px")
     }
 
+    function focusTerminalView() {
+        Qt.callLater(function() {
+            terminalView.forceActiveFocus()
+        })
+    }
+
     component TerminalPillButton : Rectangle {
         id: control
 
@@ -343,4 +349,11 @@ Page {
         interval: 1800
         onTriggered: toastMessage = ""
     }
+
+    Component.onCompleted: focusTerminalView()
+    onVisibleChanged: {
+        if (visible)
+            focusTerminalView()
+    }
+    onKeyboardVisibleChanged: focusTerminalView()
 }
