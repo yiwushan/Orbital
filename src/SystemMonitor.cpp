@@ -2,6 +2,7 @@
 
 #include "backend/DisplayBackend.h"
 #include "backend/LedBackend.h"
+#include "backend/SystemDetailsBackend.h"
 #include "backend/SystemHelpers.h"
 #include "backend/SystemStatsBackend.h"
 #include "backend/WifiBackend.h"
@@ -14,6 +15,7 @@ SystemMonitor::SystemMonitor(QObject *parent)
     , m_statsBackend(new SystemStatsBackend(this))
     , m_displayBackend(new DisplayBackend(this))
     , m_ledBackend(new LedBackend(this))
+    , m_systemDetailsBackend(new SystemDetailsBackend(this))
     , m_wifiBackend(new WifiBackend(this))
     , m_timer(new QTimer(this))
 {
@@ -168,6 +170,11 @@ QString SystemMonitor::kernelVersion() const
 QObject *SystemMonitor::ledBackend() const
 {
     return m_ledBackend;
+}
+
+QObject *SystemMonitor::systemDetailsBackend() const
+{
+    return m_systemDetailsBackend;
 }
 
 void SystemMonitor::setWifiEnabled(bool enable)

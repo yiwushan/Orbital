@@ -66,6 +66,8 @@ qt_add_executable(appOrbital
     src/backend/DisplayBackend.cpp
     src/backend/LedBackend.h
     src/backend/LedBackend.cpp
+    src/backend/SystemDetailsBackend.h
+    src/backend/SystemDetailsBackend.cpp
     src/backend/WifiBackend.h
     src/backend/WifiBackend.cpp
     src/backend/TerminalLineModel.h
@@ -94,6 +96,7 @@ qt_add_qml_module(appOrbital
         qml/LineChart.qml
         qml/SettingsPage.qml
         qml/LedPage.qml
+        qml/SystemDetailsPage.qml
         qml/WifiPage.qml
         qml/CustomKeyboard.qml
         qml/WifiConnectPage.qml
@@ -120,6 +123,7 @@ qt_add_qml_module(appOrbital
         assets/eye.svg
         assets/eye-off.svg
         assets/info.svg
+        assets/list.svg
         assets/linux.svg
         assets/delete.svg
         assets/back.svg

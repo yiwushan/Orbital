@@ -245,6 +245,44 @@ Rectangle {
                     Layout.leftMargin: 20
                     Layout.rightMargin: 20
                     height: 60
+                    color: tapDetails.pressed ? "#2a2a2a" : "#1e1e1e"
+                    radius: 12
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+
+                        IconImage {
+                            source: "qrc:/MyDesktop/Backend/assets/list.svg"
+                            sourceSize: Qt.size(24, 24)
+                            color: "white"
+                        }
+
+                        Text {
+                            text: "System Details"
+                            color: "white"
+                            font.pixelSize: 16
+                            font.bold: true
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 10
+                        }
+                    }
+
+                    TapHandler {
+                        id: tapDetails
+                        onTapped: {
+                            stackView.push("qrc:/MyDesktop/Backend/qml/SystemDetailsPage.qml", {
+                                "backend": root.sysMon
+                            })
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 20
+                    Layout.rightMargin: 20
+                    height: 60
                     color: tapAbout.pressed ? "#2a2a2a" : "#1e1e1e"
                     radius: 12
                     RowLayout {
