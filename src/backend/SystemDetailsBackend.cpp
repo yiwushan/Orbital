@@ -7,7 +7,6 @@
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>
 #include <QTextStream>
-#include <QThread>
 #include <QTimer>
 
 #include <algorithm>
@@ -136,11 +135,6 @@ SystemDetailsBackend::SystemDetailsBackend(QObject *parent)
 {
     m_timer->setInterval(kRefreshIntervalMs);
     connect(m_timer, &QTimer::timeout, this, &SystemDetailsBackend::refresh);
-
-    const int idealCpuCount = QThread::idealThreadCount();
-    if (idealCpuCount > 0) {
-        m_cpuCount = idealCpuCount;
-    }
 
     const long pageSize = ::sysconf(_SC_PAGESIZE);
     if (pageSize > 0) {
@@ -406,7 +400,7 @@ void SystemDetailsBackend::readTopProcesses()
             const quint64 processDiff = sample.totalCpuTime >= previousProcessTime
                                             ? (sample.totalCpuTime - previousProcessTime)
                                             : 0;
-            process.cpuPercent = static_cast<double>(processDiff) * 100.0 * m_cpuCount / totalCpuDiff;
+            process.cpuPercent = static_cast<double>(processDiff) * 100.0 / totalCpuDiff;
         }
 
         ranked.append(process);

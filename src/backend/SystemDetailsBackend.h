@@ -75,5 +75,4 @@ private:
     quint64 m_prevTotalCpuTime = 0;
     qint64 m_totalMemoryKb = 0;
     qint64 m_pageSizeBytes = 4096;
-    int m_cpuCount = 1;
 };
