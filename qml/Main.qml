@@ -13,6 +13,7 @@ Window {
     color: "#121212"
 
     property bool historyExpanded: true
+    property string screenshotToastMessage: ""
 
     SystemMonitor {
         id: backend
@@ -54,6 +55,42 @@ Window {
         if (p >= 30) return "#FFC107"; 
         if (p >= 15) return "#FF9800"; 
         return "#FF5252"; 
+    }
+
+    function showScreenshotToast(message) {
+        screenshotToastMessage = message
+        screenshotToastTimer.restart()
+    }
+
+    function captureScreenshot() {
+        var path = backend.nextScreenshotPath()
+        if (!path) {
+            showScreenshotToast("Screenshot path unavailable")
+            return
+        }
+
+        screenshotToastTimer.stop()
+        screenshotToastMessage = ""
+
+        Qt.callLater(function() {
+            var accepted = window.contentItem.grabToImage(function(result) {
+                if (result && result.saveToFile(path))
+                    showScreenshotToast("Screenshot saved")
+                else
+                    showScreenshotToast("Screenshot save failed")
+            })
+
+            if (!accepted)
+                showScreenshotToast("Screenshot unavailable")
+        })
+    }
+
+    Connections {
+        target: backend
+
+        function onScreenshotRequested() {
+            window.captureScreenshot()
+        }
     }
 
     // ================= POPUPS =================
@@ -696,6 +733,40 @@ Window {
                 }
             }
         }
+    }
+
+    Rectangle {
+        id: screenshotToast
+        z: 2000
+        width: Math.min(window.width - 40, screenshotToastText.implicitWidth + 36)
+        height: screenshotToastText.implicitHeight + 18
+        radius: 10
+        color: "#202020"
+        border.color: "#3a3a3a"
+        border.width: 1
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 32
+        opacity: screenshotToastMessage !== "" ? 0.96 : 0
+        visible: opacity > 0
+
+        Text {
+            id: screenshotToastText
+            anchors.centerIn: parent
+            width: screenshotToast.width - 28
+            text: screenshotToastMessage
+            color: "white"
+            font.pixelSize: 12
+            font.bold: true
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+        }
+    }
+
+    Timer {
+        id: screenshotToastTimer
+        interval: 1800
+        onTriggered: screenshotToastMessage = ""
     }
 
     // ================= MAIN UI =================

@@ -24,6 +24,7 @@ signals:
     void brightnessChanged();
     void screenStateChanged();
     void volumeKeyEvent(QString key, int value);
+    void screenshotRequested();
 
 private slots:
     void onPowerInputEvent();
@@ -49,4 +50,7 @@ private:
     QSocketNotifier *m_volumeNotifier = nullptr;
     bool m_isScreenOn = true;
     QTimer *m_longPressTimer = nullptr;
+    bool m_volumeUpPressed = false;
+    bool m_volumeDownPressed = false;
+    bool m_screenshotComboTriggered = false;
 };

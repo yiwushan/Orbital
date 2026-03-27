@@ -76,6 +76,7 @@ public:
     Q_INVOKABLE void forgetNetwork(const QString &ssid);
     Q_INVOKABLE void setAutoConnect(const QString &ssid, bool autoConnect);
     Q_INVOKABLE void scanWifiNetworks();
+    Q_INVOKABLE QString nextScreenshotPath() const;
     Q_INVOKABLE void systemCmd(const QString &cmd);
 
 signals:
@@ -87,6 +88,7 @@ signals:
     void currentWifiDetailsChanged();
     void wifiOperationResult(QString operation, bool success, QString message);
     void volumeKeyEvent(QString key, int value);
+    void screenshotRequested();
 
 private slots:
     void refreshStats();

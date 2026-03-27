@@ -28,6 +28,8 @@ SystemMonitor::SystemMonitor(QObject *parent)
             this, &SystemMonitor::screenStateChanged);
     connect(m_displayBackend, &DisplayBackend::volumeKeyEvent,
             this, &SystemMonitor::volumeKeyEvent);
+    connect(m_displayBackend, &DisplayBackend::screenshotRequested,
+            this, &SystemMonitor::screenshotRequested);
 
     connect(m_wifiBackend, &WifiBackend::wifiListChanged,
             this, &SystemMonitor::wifiListChanged);
@@ -201,6 +203,11 @@ void SystemMonitor::setAutoConnect(const QString &ssid, bool autoConnect)
 void SystemMonitor::scanWifiNetworks()
 {
     m_wifiBackend->scanWifiNetworks();
+}
+
+QString SystemMonitor::nextScreenshotPath() const
+{
+    return Backend::nextScreenshotFilePath();
 }
 
 void SystemMonitor::systemCmd(const QString &cmd)

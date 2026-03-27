@@ -175,6 +175,27 @@ void DisplayBackend::onVolumeInputEvent()
         const QString key = volumeKeyName(ev.code);
         qDebug() << "Volume key event:" << key << "value:" << ev.value;
         emit volumeKeyEvent(key, ev.value);
+
+        if (ev.value == 2) {
+            continue;
+        }
+
+        if (ev.code == KEY_VOLUMEUP) {
+            m_volumeUpPressed = (ev.value == 1);
+        } else if (ev.code == KEY_VOLUMEDOWN) {
+            m_volumeDownPressed = (ev.value == 1);
+        }
+
+        if (ev.value == 1 && m_volumeUpPressed && m_volumeDownPressed
+            && !m_screenshotComboTriggered) {
+            m_screenshotComboTriggered = true;
+            qDebug() << "Volume combo detected. Requesting screenshot.";
+            emit screenshotRequested();
+        }
+
+        if (!m_volumeUpPressed && !m_volumeDownPressed) {
+            m_screenshotComboTriggered = false;
+        }
     }
 }
 

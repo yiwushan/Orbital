@@ -1,9 +1,15 @@
 #pragma once
 
+#include <QDateTime>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QString>
 #include <QTextStream>
 #include <QtGlobal>
+
+#include <pwd.h>
+#include <sys/types.h>
 
 namespace Backend {
 
@@ -108,6 +114,124 @@ inline QString readKernelVersion()
     }
 
     return "Unknown Kernel";
+}
+
+inline QString readEnvironmentValue(const char *name)
+{
+    return QString::fromLocal8Bit(qgetenv(name)).trimmed();
+}
+
+inline QString homePathForUserName(const QString &userName)
+{
+    if (userName.isEmpty()) {
+        return {};
+    }
+
+    const QByteArray localName = userName.toLocal8Bit();
+    passwd *entry = getpwnam(localName.constData());
+    if (entry && entry->pw_dir) {
+        return QString::fromLocal8Bit(entry->pw_dir);
+    }
+
+    const QString fallback = QDir(QStringLiteral("/home")).filePath(userName);
+    if (QFileInfo::exists(fallback)) {
+        return fallback;
+    }
+
+    return {};
+}
+
+inline QString homePathForUidEnv(const char *name)
+{
+    bool ok = false;
+    const uint uidValue = readEnvironmentValue(name).toUInt(&ok);
+    if (!ok) {
+        return {};
+    }
+
+    passwd *entry = getpwuid(static_cast<uid_t>(uidValue));
+    if (!entry || !entry->pw_dir) {
+        return {};
+    }
+
+    return QString::fromLocal8Bit(entry->pw_dir);
+}
+
+inline QString preferredUserHomePath()
+{
+    const QString sudoUserHome = homePathForUserName(readEnvironmentValue("SUDO_USER"));
+    if (!sudoUserHome.isEmpty()) {
+        return sudoUserHome;
+    }
+
+    const QString pkexecUserHome = homePathForUserName(readEnvironmentValue("PKEXEC_USER"));
+    if (!pkexecUserHome.isEmpty()) {
+        return pkexecUserHome;
+    }
+
+    const QString sudoUidHome = homePathForUidEnv("SUDO_UID");
+    if (!sudoUidHome.isEmpty()) {
+        return sudoUidHome;
+    }
+
+    const QString pkexecUidHome = homePathForUidEnv("PKEXEC_UID");
+    if (!pkexecUidHome.isEmpty()) {
+        return pkexecUidHome;
+    }
+
+    const QString currentHome = QDir::homePath();
+    if (!currentHome.isEmpty() && currentHome != QStringLiteral("/root")) {
+        return currentHome;
+    }
+
+    const QFileInfoList homeEntries = QDir(QStringLiteral("/home"))
+                                          .entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    if (homeEntries.size() == 1) {
+        return homeEntries.constFirst().absoluteFilePath();
+    }
+
+    for (const QFileInfo &entry : homeEntries) {
+        if (QFileInfo(entry.absoluteFilePath() + QStringLiteral("/Pictures")).exists()) {
+            return entry.absoluteFilePath();
+        }
+    }
+
+    return currentHome;
+}
+
+inline QString screenshotDirectory()
+{
+    const QString configuredDir = readEnvironmentValue("ORBITAL_SCREENSHOT_DIR");
+    if (!configuredDir.isEmpty()) {
+        return QDir::cleanPath(configuredDir);
+    }
+
+    QString baseHome = preferredUserHomePath();
+    if (baseHome.isEmpty()) {
+        baseHome = QDir::homePath();
+    }
+    if (baseHome.isEmpty()) {
+        baseHome = QDir::currentPath();
+    }
+
+    return QDir::cleanPath(baseHome + QStringLiteral("/Pictures/Orbital/Screenshots"));
+}
+
+inline QString nextScreenshotFilePath()
+{
+    const QString dirPath = screenshotDirectory();
+    if (dirPath.isEmpty()) {
+        return {};
+    }
+
+    QDir dir;
+    if (!dir.mkpath(dirPath)) {
+        return {};
+    }
+
+    const QString fileName = QStringLiteral("Orbital_%1.png")
+                                 .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_HH-mm-ss-zzz")));
+    return QDir(dirPath).filePath(fileName);
 }
 
 } // namespace Backend
