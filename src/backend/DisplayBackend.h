@@ -23,24 +23,30 @@ public slots:
 signals:
     void brightnessChanged();
     void screenStateChanged();
+    void volumeKeyEvent(QString key, int value);
 
 private slots:
-    void onInputEvent();
+    void onPowerInputEvent();
+    void onVolumeInputEvent();
 
 private:
     void initPowerKeyMonitor();
+    void initVolumeKeyMonitor();
     void toggleScreen();
     void findBacklightPath();
     void readBrightness();
 
     QString m_backlightPath;
+    QString m_touchInhibitPath;
+    QString m_powerKeyPath;
+    QString m_volumeKeyPath;
     int m_maxBrightness = 0;
     int m_brightnessPercent = 50;
 
-    int m_inputFd = -1;
-    QSocketNotifier *m_notifier = nullptr;
+    int m_powerInputFd = -1;
+    int m_volumeInputFd = -1;
+    QSocketNotifier *m_powerNotifier = nullptr;
+    QSocketNotifier *m_volumeNotifier = nullptr;
     bool m_isScreenOn = true;
     QTimer *m_longPressTimer = nullptr;
-    const QString m_touchInhibitPath =
-        "/sys/devices/platform/soc@0/ac0000.geniqup/a90000.i2c/i2c-12/12-0020/rmi4-00/input/input5/inhibited";
 };

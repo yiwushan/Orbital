@@ -81,6 +81,7 @@ signals:
     void wifiEnabledChanged();
     void currentWifiDetailsChanged();
     void wifiOperationResult(QString operation, bool success, QString message);
+    void volumeKeyEvent(QString key, int value);
 
 private slots:
     void refreshStats();

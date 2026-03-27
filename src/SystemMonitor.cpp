@@ -24,6 +24,8 @@ SystemMonitor::SystemMonitor(QObject *parent)
             this, &SystemMonitor::brightnessChanged);
     connect(m_displayBackend, &DisplayBackend::screenStateChanged,
             this, &SystemMonitor::screenStateChanged);
+    connect(m_displayBackend, &DisplayBackend::volumeKeyEvent,
+            this, &SystemMonitor::volumeKeyEvent);
 
     connect(m_wifiBackend, &WifiBackend::wifiListChanged,
             this, &SystemMonitor::wifiListChanged);
