@@ -13,9 +13,16 @@ set(CMAKE_AUTOUIC ON)
 # 查找 Qt 库
 find_package(Qt6 COMPONENTS Quick Core Network REQUIRED)
 
-# Adopt current Qt QML module policies explicitly.
-qt_policy(SET QTP0001 NEW)
-qt_policy(SET QTP0004 NEW)
+# Apply Qt policies only when the current Qt version supports them.
+if(COMMAND qt_policy)
+    if(QT_KNOWN_POLICY_QTP0001)
+        qt_policy(SET QTP0001 NEW)
+    endif()
+
+    if(QT_KNOWN_POLICY_QTP0004)
+        qt_policy(SET QTP0004 NEW)
+    endif()
+endif()
 
 # 获取当前 Git 提交的短哈希值
 find_package(Git)
