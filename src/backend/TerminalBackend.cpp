@@ -1153,6 +1153,8 @@ void TerminalBackend::writeBytes(const QByteArray &bytes)
         return;
     }
 
+    emit userInputSent();
+
     qsizetype written = 0;
     while (written < bytes.size()) {
         const ssize_t result = ::write(m_masterFd, bytes.constData() + written, bytes.size() - written);

@@ -245,6 +245,9 @@ Item {
             if (root.followOutput || lineList.atYEnd)
                 root.scrollToBottom()
         }
+        function onUserInputSent() {
+            root.followOutput = true
+        }
     }
 
     Keys.onPressed: function(event) {

@@ -71,6 +71,7 @@ signals:
     void cursorChanged();
     void fontPixelSizeChanged();
     void colorSchemeChanged();
+    void userInputSent();
 
 private slots:
     void handleReadyRead();
