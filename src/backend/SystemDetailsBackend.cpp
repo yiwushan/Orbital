@@ -262,6 +262,26 @@ void SystemDetailsBackend::readOverview()
         m_uptime = QStringLiteral("--");
     }
 
+    // Find the default route interface from /proc/net/route
+    QString defaultRouteIface;
+    QFile routeFile(QStringLiteral("/proc/net/route"));
+    if (routeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream stream(&routeFile);
+        stream.readLine(); // skip header
+        while (!stream.atEnd()) {
+            const QString line = stream.readLine();
+            const QStringList fields = line.split(QLatin1Char('\t'), Qt::SkipEmptyParts);
+            // fields[1] is destination, fields[3] is flags; destination 00000000 = default route
+            if (fields.size() >= 4 && fields[1] == QLatin1String("00000000")) {
+                const bool hasGateway = fields[3].toUInt(nullptr, 16) & 0x2; // RTF_GATEWAY
+                if (hasGateway) {
+                    defaultRouteIface = fields[0];
+                    break;
+                }
+            }
+        }
+    }
+
     QVariantList addresses;
     QString primaryAddress;
     const QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
@@ -290,12 +310,26 @@ void SystemDetailsBackend::readOverview()
             item[QStringLiteral("family")] = addressFamilyLabel(protocol);
             addresses.append(item);
 
-            if (protocol == QAbstractSocket::IPv4Protocol && primaryAddress.isEmpty()) {
-                primaryAddress = addressText;
-            } else if (primaryAddress.isEmpty()) {
+            if (protocol == QAbstractSocket::IPv4Protocol
+                && interface.name() == defaultRouteIface
+                && primaryAddress.isEmpty()) {
                 primaryAddress = addressText;
             }
         }
+    }
+
+    // Fallback: first IPv4, then first IPv6
+    if (primaryAddress.isEmpty()) {
+        for (const QVariant &v : std::as_const(addresses)) {
+            const QVariantMap item = v.toMap();
+            if (item[QStringLiteral("family")].toString() == QLatin1String("IPv4")) {
+                primaryAddress = item[QStringLiteral("address")].toString();
+                break;
+            }
+        }
+    }
+    if (primaryAddress.isEmpty() && !addresses.isEmpty()) {
+        primaryAddress = addresses.first().toMap()[QStringLiteral("address")].toString();
     }
 
     m_ipAddresses = addresses;
