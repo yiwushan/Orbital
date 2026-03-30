@@ -100,10 +100,10 @@ void WifiBackend::connectToWifi(const QString &ssid, const QString &password)
         const QString output = QString::fromUtf8(proc->readAllStandardOutput());
         const QString error = QString::fromUtf8(proc->readAllStandardError());
 
-        if (success) {
-            fetchSavedWifiList();
-            scanWifiNetworks();
-        }
+        // 无论成功或失败都刷新，确保 m_savedSsids 与 NetworkManager 实际状态同步
+        // （nmcli 连接失败时也可能创建了 connection profile）
+        fetchSavedWifiList();
+        scanWifiNetworks();
 
         emit wifiOperationResult("connect", success, success ? output : error);
         proc->deleteLater();

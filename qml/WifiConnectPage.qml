@@ -348,6 +348,8 @@ Page {
     }
     
     Component.onCompleted: {
+        // 冻结 wifiData 快照，防止后台扫描更新 wifiList 时影响当前页面的状态判断
+        wifiData = JSON.parse(JSON.stringify(wifiData))
         if (isNew && wifiData.secured) {
             // 自动聚焦
             passInput.forceActiveFocus()
