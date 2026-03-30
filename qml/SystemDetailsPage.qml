@@ -319,6 +319,76 @@ Page {
                 }
 
                 SectionCard {
+                    implicitHeight: memLayout.implicitHeight + 30
+                    visible: detailsCtrl && detailsCtrl.memoryDetails.length > 0
+
+                    ColumnLayout {
+                        id: memLayout
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 12
+
+                        Text {
+                            text: "Memory"
+                            color: "white"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Repeater {
+                            model: detailsCtrl ? detailsCtrl.memoryDetails : []
+
+                            delegate: ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 10
+                                        height: 10
+                                        radius: 5
+                                        color: modelData.color
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.label
+                                        color: "#9AA7B7"
+                                        font.pixelSize: 13
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Text {
+                                        text: modelData.value
+                                        color: "white"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        font.family: "Monospace"
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 6
+                                    radius: 3
+                                    color: "#2A3240"
+
+                                    Rectangle {
+                                        width: Math.max(0, Math.min(1, modelData.percent)) * parent.width
+                                        height: parent.height
+                                        radius: 3
+                                        color: modelData.color
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                SectionCard {
                     implicitHeight: netSpeedLayout.implicitHeight + 30
                     visible: detailsCtrl && detailsCtrl.networkSpeeds.length > 0
 
@@ -377,6 +447,77 @@ Page {
                                         Text {
                                             text: "\u2193 " + modelData.rxSpeed
                                             color: "#00E676"
+                                            font.pixelSize: 12
+                                            font.family: "Monospace"
+                                            horizontalAlignment: Text.AlignRight
+                                            Layout.alignment: Qt.AlignRight
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                SectionCard {
+                    implicitHeight: diskIoLayout.implicitHeight + 30
+                    visible: detailsCtrl && detailsCtrl.diskIoSpeeds.length > 0
+
+                    ColumnLayout {
+                        id: diskIoLayout
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 12
+
+                        Text {
+                            text: "Disk I/O"
+                            color: "white"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Repeater {
+                            model: detailsCtrl ? detailsCtrl.diskIoSpeeds : []
+
+                            delegate: Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 56
+                                radius: 10
+                                color: "#181D25"
+                                border.width: 1
+                                border.color: "#2A3240"
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 14
+                                    anchors.rightMargin: 14
+                                    spacing: 10
+
+                                    Text {
+                                        text: modelData.device
+                                        color: "#9AA7B7"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                    }
+
+                                    ColumnLayout {
+                                        spacing: 2
+                                        Layout.alignment: Qt.AlignVCenter
+
+                                        Text {
+                                            text: "R " + modelData.readSpeed
+                                            color: "#42A5F5"
+                                            font.pixelSize: 12
+                                            font.family: "Monospace"
+                                            horizontalAlignment: Text.AlignRight
+                                            Layout.alignment: Qt.AlignRight
+                                        }
+
+                                        Text {
+                                            text: "W " + modelData.writeSpeed
+                                            color: "#FF7043"
                                             font.pixelSize: 12
                                             font.family: "Monospace"
                                             horizontalAlignment: Text.AlignRight

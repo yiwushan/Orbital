@@ -19,6 +19,8 @@ class SystemDetailsBackend : public QObject
     Q_PROPERTY(QVariantList topProcesses READ topProcesses NOTIFY dataChanged)
     Q_PROPERTY(QVariantList thermalSensors READ thermalSensors NOTIFY dataChanged)
     Q_PROPERTY(QVariantList networkSpeeds READ networkSpeeds NOTIFY dataChanged)
+    Q_PROPERTY(QVariantList memoryDetails READ memoryDetails NOTIFY dataChanged)
+    Q_PROPERTY(QVariantList diskIoSpeeds READ diskIoSpeeds NOTIFY dataChanged)
     Q_PROPERTY(int topProcessLimit READ topProcessLimit CONSTANT)
 
 public:
@@ -35,6 +37,8 @@ public:
     QVariantList topProcesses() const;
     QVariantList thermalSensors() const;
     QVariantList networkSpeeds() const;
+    QVariantList memoryDetails() const;
+    QVariantList diskIoSpeeds() const;
     int topProcessLimit() const;
 
     Q_INVOKABLE void refreshNow();
@@ -60,6 +64,8 @@ private:
     void readTopProcesses();
     void readThermalSensors();
     void readNetworkSpeeds();
+    void readMemoryDetails();
+    void readDiskIoSpeeds();
 
     qint64 readTotalMemoryKb() const;
     quint64 readTotalCpuTime() const;
@@ -75,8 +81,12 @@ private:
     QVariantList m_topProcesses;
     QVariantList m_thermalSensors;
     QVariantList m_networkSpeeds;
+    QVariantList m_memoryDetails;
+    QVariantList m_diskIoSpeeds;
     struct NetCounter { quint64 rx = 0; quint64 tx = 0; };
     QHash<QString, NetCounter> m_prevNetCounters;
+    struct DiskIoCounter { quint64 readSectors = 0; quint64 writeSectors = 0; };
+    QHash<QString, DiskIoCounter> m_prevDiskIoCounters;
     QHash<int, quint64> m_prevProcessCpuTimes;
     quint64 m_prevTotalCpuTime = 0;
     qint64 m_totalMemoryKb = 0;

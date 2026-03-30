@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>
+#include <QRegularExpression>
 #include <QTextStream>
 #include <QTimer>
 
@@ -224,6 +225,16 @@ QVariantList SystemDetailsBackend::networkSpeeds() const
     return m_networkSpeeds;
 }
 
+QVariantList SystemDetailsBackend::memoryDetails() const
+{
+    return m_memoryDetails;
+}
+
+QVariantList SystemDetailsBackend::diskIoSpeeds() const
+{
+    return m_diskIoSpeeds;
+}
+
 int SystemDetailsBackend::topProcessLimit() const
 {
     return kTopProcessLimit;
@@ -237,10 +248,13 @@ void SystemDetailsBackend::refreshNow()
 void SystemDetailsBackend::refresh()
 {
     readOverview();
+    readMemoryDetails();
     readNetworkSpeeds();
+    readDiskIoSpeeds();
     readCpuFrequencies();
     readTopProcesses();
     readThermalSensors();
+
     emit dataChanged();
 }
 
@@ -249,9 +263,12 @@ void SystemDetailsBackend::resetSamplingState()
     m_prevProcessCpuTimes.clear();
     m_prevTotalCpuTime = 0;
     m_prevNetCounters.clear();
+    m_prevDiskIoCounters.clear();
     m_topProcesses.clear();
     m_thermalSensors.clear();
     m_networkSpeeds.clear();
+    m_memoryDetails.clear();
+    m_diskIoSpeeds.clear();
 }
 
 void SystemDetailsBackend::readOverview()
@@ -741,4 +758,123 @@ void SystemDetailsBackend::readNetworkSpeeds()
 
     m_prevNetCounters = currentCounters;
     m_networkSpeeds = speeds;
+}
+
+void SystemDetailsBackend::readMemoryDetails()
+{
+    const QString content = Backend::readTextFile(QStringLiteral("/proc/meminfo"));
+    if (content.isEmpty()) {
+        return;
+    }
+
+    qint64 total = 0, available = 0, buffers = 0, cached = 0;
+    qint64 swapTotal = 0, swapFree = 0, sReclaimable = 0;
+
+    const QStringList lines = content.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : lines) {
+        const QStringList parts = line.simplified().split(QLatin1Char(' '));
+        if (parts.size() < 2) {
+            continue;
+        }
+        const qint64 valueKb = parts[1].toLongLong();
+        if (line.startsWith(QLatin1String("MemTotal:")))          total = valueKb;
+        else if (line.startsWith(QLatin1String("MemAvailable:"))) available = valueKb;
+        else if (line.startsWith(QLatin1String("Buffers:")))      buffers = valueKb;
+        else if (line.startsWith(QLatin1String("Cached:")))       cached = valueKb;
+        else if (line.startsWith(QLatin1String("SwapTotal:")))    swapTotal = valueKb;
+        else if (line.startsWith(QLatin1String("SwapFree:")))     swapFree = valueKb;
+        else if (line.startsWith(QLatin1String("SReclaimable:"))) sReclaimable = valueKb;
+    }
+
+    if (total <= 0) {
+        return;
+    }
+
+    const qint64 usedKb = total - available;
+    const qint64 cachedTotal = cached + sReclaimable;
+    const qint64 swapUsed = swapTotal - swapFree;
+
+    QVariantList details;
+
+    auto addEntry = [&](const QString &label, qint64 kb, double pct, const QString &color) {
+        QVariantMap item;
+        item[QStringLiteral("label")] = label;
+        item[QStringLiteral("value")] = Backend::formatSize(kb * 1024);
+        item[QStringLiteral("percent")] = pct;
+        item[QStringLiteral("color")] = color;
+        details.append(item);
+    };
+
+    addEntry(QStringLiteral("Used"),    usedKb,      static_cast<double>(usedKb)      / total, QStringLiteral("#FF5252"));
+    addEntry(QStringLiteral("Buffers"), buffers,     static_cast<double>(buffers)     / total, QStringLiteral("#42A5F5"));
+    addEntry(QStringLiteral("Cached"),  cachedTotal, static_cast<double>(cachedTotal) / total, QStringLiteral("#FFB020"));
+
+    if (swapTotal > 0) {
+        addEntry(QStringLiteral("Swap"), swapUsed,
+                 static_cast<double>(swapUsed) / swapTotal, QStringLiteral("#B48EAD"));
+    }
+
+    m_memoryDetails = details;
+}
+
+void SystemDetailsBackend::readDiskIoSpeeds()
+{
+    const double intervalSec = kRefreshIntervalMs / 1000.0;
+    QVariantList speeds;
+    QHash<QString, DiskIoCounter> currentCounters;
+
+    const QString content = Backend::readTextFile(QStringLiteral("/proc/diskstats"));
+    if (content.isEmpty()) {
+        return;
+    }
+
+    const QStringList rawLines = content.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &rawLine : rawLines) {
+        const QString line = rawLine.trimmed();
+        const QStringList fields = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (fields.size() < 14) {
+            continue;
+        }
+
+        const QString device = fields[2];
+
+        // Skip partitions (e.g. sda1) and loop/ram devices — only whole disks
+        if (device.startsWith(QLatin1String("loop")) || device.startsWith(QLatin1String("ram"))) {
+            continue;
+        }
+
+        // Skip partitions: if removing trailing digits yields a different device that also exists,
+        // this is a partition. Simpler heuristic: skip if name ends with a digit and contains
+        // a letter followed by digits (e.g. sda1, nvme0n1p1, mmcblk0p1).
+        // We only want whole devices: sda, nvme0n1, mmcblk0
+        static const QRegularExpression partitionRe(QStringLiteral("^(sd[a-z]+|nvme\\d+n\\d+|mmcblk\\d+)p?\\d+$"));
+        static const QRegularExpression wholeDeviceRe(QStringLiteral("^(sd[a-z]+|nvme\\d+n\\d+|mmcblk\\d+|vd[a-z]+)$"));
+        if (!wholeDeviceRe.match(device).hasMatch()) {
+            continue;
+        }
+
+        // fields[5] = sectors read, fields[9] = sectors written
+        const quint64 readSectors = fields[5].toULongLong();
+        const quint64 writeSectors = fields[9].toULongLong();
+
+        currentCounters[device] = {readSectors, writeSectors};
+
+        if (m_prevDiskIoCounters.contains(device)) {
+            const DiskIoCounter &prev = m_prevDiskIoCounters[device];
+            const quint64 readDelta = readSectors >= prev.readSectors ? readSectors - prev.readSectors : 0;
+            const quint64 writeDelta = writeSectors >= prev.writeSectors ? writeSectors - prev.writeSectors : 0;
+            // Sector size is typically 512 bytes
+            const quint64 readSpeed = static_cast<quint64>((readDelta * 512) / intervalSec);
+            const quint64 writeSpeed = static_cast<quint64>((writeDelta * 512) / intervalSec);
+
+            QVariantMap item;
+            item[QStringLiteral("device")] = device;
+            item[QStringLiteral("readSpeed")] = Backend::formatSpeed(readSpeed);
+            item[QStringLiteral("writeSpeed")] = Backend::formatSpeed(writeSpeed);
+            speeds.append(item);
+        }
+    }
+
+    m_prevDiskIoCounters = currentCounters;
+    m_diskIoSpeeds = speeds;
 }
