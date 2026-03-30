@@ -18,6 +18,7 @@ class SystemDetailsBackend : public QObject
     Q_PROPERTY(QVariantList cpuFrequencies READ cpuFrequencies NOTIFY dataChanged)
     Q_PROPERTY(QVariantList topProcesses READ topProcesses NOTIFY dataChanged)
     Q_PROPERTY(QVariantList thermalSensors READ thermalSensors NOTIFY dataChanged)
+    Q_PROPERTY(QVariantList networkSpeeds READ networkSpeeds NOTIFY dataChanged)
     Q_PROPERTY(int topProcessLimit READ topProcessLimit CONSTANT)
 
 public:
@@ -33,6 +34,7 @@ public:
     QVariantList cpuFrequencies() const;
     QVariantList topProcesses() const;
     QVariantList thermalSensors() const;
+    QVariantList networkSpeeds() const;
     int topProcessLimit() const;
 
     Q_INVOKABLE void refreshNow();
@@ -57,6 +59,7 @@ private:
     void readCpuFrequencies();
     void readTopProcesses();
     void readThermalSensors();
+    void readNetworkSpeeds();
 
     qint64 readTotalMemoryKb() const;
     quint64 readTotalCpuTime() const;
@@ -71,6 +74,9 @@ private:
     QVariantList m_cpuFrequencies;
     QVariantList m_topProcesses;
     QVariantList m_thermalSensors;
+    QVariantList m_networkSpeeds;
+    struct NetCounter { quint64 rx = 0; quint64 tx = 0; };
+    QHash<QString, NetCounter> m_prevNetCounters;
     QHash<int, quint64> m_prevProcessCpuTimes;
     quint64 m_prevTotalCpuTime = 0;
     qint64 m_totalMemoryKb = 0;

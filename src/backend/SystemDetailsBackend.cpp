@@ -219,6 +219,11 @@ QVariantList SystemDetailsBackend::thermalSensors() const
     return m_thermalSensors;
 }
 
+QVariantList SystemDetailsBackend::networkSpeeds() const
+{
+    return m_networkSpeeds;
+}
+
 int SystemDetailsBackend::topProcessLimit() const
 {
     return kTopProcessLimit;
@@ -232,6 +237,7 @@ void SystemDetailsBackend::refreshNow()
 void SystemDetailsBackend::refresh()
 {
     readOverview();
+    readNetworkSpeeds();
     readCpuFrequencies();
     readTopProcesses();
     readThermalSensors();
@@ -242,8 +248,10 @@ void SystemDetailsBackend::resetSamplingState()
 {
     m_prevProcessCpuTimes.clear();
     m_prevTotalCpuTime = 0;
+    m_prevNetCounters.clear();
     m_topProcesses.clear();
     m_thermalSensors.clear();
+    m_networkSpeeds.clear();
 }
 
 void SystemDetailsBackend::readOverview()
@@ -684,4 +692,53 @@ bool SystemDetailsBackend::readProcessSample(const QString &pidText, ProcessSamp
     sample.totalCpuTime = userTime + systemTime;
     sample.rssBytes = std::max<qint64>(0, rssPages) * m_pageSizeBytes;
     return true;
+}
+
+void SystemDetailsBackend::readNetworkSpeeds()
+{
+    const double intervalSec = kRefreshIntervalMs / 1000.0;
+    QVariantList speeds;
+    QHash<QString, NetCounter> currentCounters;
+
+    const QDir netDir(QStringLiteral("/sys/class/net"));
+    const QStringList interfaces = netDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &iface : interfaces) {
+        if (iface == QLatin1String("lo")) {
+            continue;
+        }
+
+        const QString basePath = QStringLiteral("/sys/class/net/%1/").arg(iface);
+
+        const QString operstate = Backend::readTextFile(basePath + QStringLiteral("operstate")).trimmed();
+        if (operstate != QLatin1String("up")) {
+            continue;
+        }
+
+        bool okRx = false;
+        bool okTx = false;
+        const quint64 rx = Backend::readTextFile(basePath + QStringLiteral("statistics/rx_bytes")).trimmed().toULongLong(&okRx);
+        const quint64 tx = Backend::readTextFile(basePath + QStringLiteral("statistics/tx_bytes")).trimmed().toULongLong(&okTx);
+        if (!okRx || !okTx) {
+            continue;
+        }
+
+        currentCounters[iface] = {rx, tx};
+
+        if (m_prevNetCounters.contains(iface)) {
+            const NetCounter &prev = m_prevNetCounters[iface];
+            const quint64 rxDelta = rx >= prev.rx ? rx - prev.rx : 0;
+            const quint64 txDelta = tx >= prev.tx ? tx - prev.tx : 0;
+            const quint64 rxSpeed = static_cast<quint64>(rxDelta / intervalSec);
+            const quint64 txSpeed = static_cast<quint64>(txDelta / intervalSec);
+
+            QVariantMap item;
+            item[QStringLiteral("interface")] = iface;
+            item[QStringLiteral("rxSpeed")] = Backend::formatSpeed(rxSpeed);
+            item[QStringLiteral("txSpeed")] = Backend::formatSpeed(txSpeed);
+            speeds.append(item);
+        }
+    }
+
+    m_prevNetCounters = currentCounters;
+    m_networkSpeeds = speeds;
 }
