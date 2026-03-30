@@ -29,10 +29,92 @@ constexpr int kDefaultFontPixelSize = 15;
 constexpr int kMinFontPixelSize = 12;
 constexpr int kMaxFontPixelSize = 22;
 
+struct ColorScheme
+{
+    QString name;
+    std::array<QColor, 16> palette;
+    QColor foreground;
+    QColor background;
+    QColor cursorColor;
+};
+
+// clang-format off
+const QVector<ColorScheme> kColorSchemes = {
+    {QStringLiteral("Nord"), {
+        QColor(QStringLiteral("#121212")), QColor(QStringLiteral("#BF616A")),
+        QColor(QStringLiteral("#A3BE8C")), QColor(QStringLiteral("#EBCB8B")),
+        QColor(QStringLiteral("#81A1C1")), QColor(QStringLiteral("#B48EAD")),
+        QColor(QStringLiteral("#88C0D0")), QColor(QStringLiteral("#E5E9F0")),
+        QColor(QStringLiteral("#4C566A")), QColor(QStringLiteral("#D08770")),
+        QColor(QStringLiteral("#C3D89D")), QColor(QStringLiteral("#F0D899")),
+        QColor(QStringLiteral("#88C0D0")), QColor(QStringLiteral("#C895BF")),
+        QColor(QStringLiteral("#8FBCBB")), QColor(QStringLiteral("#ECEFF4"))},
+        QColor(QStringLiteral("#ECEFF4")), QColor(QStringLiteral("#121212")),
+        QColor(QStringLiteral("#88C0D0"))},
+    {QStringLiteral("Dracula"), {
+        QColor(QStringLiteral("#21222C")), QColor(QStringLiteral("#FF5555")),
+        QColor(QStringLiteral("#50FA7B")), QColor(QStringLiteral("#F1FA8C")),
+        QColor(QStringLiteral("#BD93F9")), QColor(QStringLiteral("#FF79C6")),
+        QColor(QStringLiteral("#8BE9FD")), QColor(QStringLiteral("#F8F8F2")),
+        QColor(QStringLiteral("#6272A4")), QColor(QStringLiteral("#FF6E6E")),
+        QColor(QStringLiteral("#69FF94")), QColor(QStringLiteral("#FFFFA5")),
+        QColor(QStringLiteral("#D6ACFF")), QColor(QStringLiteral("#FF92DF")),
+        QColor(QStringLiteral("#A4FFFF")), QColor(QStringLiteral("#FFFFFF"))},
+        QColor(QStringLiteral("#F8F8F2")), QColor(QStringLiteral("#282A36")),
+        QColor(QStringLiteral("#F8F8F2"))},
+    {QStringLiteral("Solarized Dark"), {
+        QColor(QStringLiteral("#073642")), QColor(QStringLiteral("#DC322F")),
+        QColor(QStringLiteral("#859900")), QColor(QStringLiteral("#B58900")),
+        QColor(QStringLiteral("#268BD2")), QColor(QStringLiteral("#D33682")),
+        QColor(QStringLiteral("#2AA198")), QColor(QStringLiteral("#EEE8D5")),
+        QColor(QStringLiteral("#586E75")), QColor(QStringLiteral("#CB4B16")),
+        QColor(QStringLiteral("#93A1A1")), QColor(QStringLiteral("#839496")),
+        QColor(QStringLiteral("#6C71C4")), QColor(QStringLiteral("#D33682")),
+        QColor(QStringLiteral("#93A1A1")), QColor(QStringLiteral("#FDF6E3"))},
+        QColor(QStringLiteral("#839496")), QColor(QStringLiteral("#002B36")),
+        QColor(QStringLiteral("#839496"))},
+    {QStringLiteral("Gruvbox Dark"), {
+        QColor(QStringLiteral("#282828")), QColor(QStringLiteral("#CC241D")),
+        QColor(QStringLiteral("#98971A")), QColor(QStringLiteral("#D79921")),
+        QColor(QStringLiteral("#458588")), QColor(QStringLiteral("#B16286")),
+        QColor(QStringLiteral("#689D6A")), QColor(QStringLiteral("#A89984")),
+        QColor(QStringLiteral("#928374")), QColor(QStringLiteral("#FB4934")),
+        QColor(QStringLiteral("#B8BB26")), QColor(QStringLiteral("#FABD2F")),
+        QColor(QStringLiteral("#83A598")), QColor(QStringLiteral("#D3869B")),
+        QColor(QStringLiteral("#8EC07C")), QColor(QStringLiteral("#EBDBB2"))},
+        QColor(QStringLiteral("#EBDBB2")), QColor(QStringLiteral("#1D2021")),
+        QColor(QStringLiteral("#EBDBB2"))},
+    {QStringLiteral("Tokyo Night"), {
+        QColor(QStringLiteral("#15161E")), QColor(QStringLiteral("#F7768E")),
+        QColor(QStringLiteral("#9ECE6A")), QColor(QStringLiteral("#E0AF68")),
+        QColor(QStringLiteral("#7AA2F7")), QColor(QStringLiteral("#BB9AF7")),
+        QColor(QStringLiteral("#7DCFFF")), QColor(QStringLiteral("#A9B1D6")),
+        QColor(QStringLiteral("#414868")), QColor(QStringLiteral("#F7768E")),
+        QColor(QStringLiteral("#9ECE6A")), QColor(QStringLiteral("#E0AF68")),
+        QColor(QStringLiteral("#7AA2F7")), QColor(QStringLiteral("#BB9AF7")),
+        QColor(QStringLiteral("#7DCFFF")), QColor(QStringLiteral("#C0CAF5"))},
+        QColor(QStringLiteral("#C0CAF5")), QColor(QStringLiteral("#1A1B26")),
+        QColor(QStringLiteral("#C0CAF5"))},
+    {QStringLiteral("Catppuccin Mocha"), {
+        QColor(QStringLiteral("#45475A")), QColor(QStringLiteral("#F38BA8")),
+        QColor(QStringLiteral("#A6E3A1")), QColor(QStringLiteral("#F9E2AF")),
+        QColor(QStringLiteral("#89B4FA")), QColor(QStringLiteral("#F5C2E7")),
+        QColor(QStringLiteral("#94E2D5")), QColor(QStringLiteral("#BAC2DE")),
+        QColor(QStringLiteral("#585B70")), QColor(QStringLiteral("#F38BA8")),
+        QColor(QStringLiteral("#A6E3A1")), QColor(QStringLiteral("#F9E2AF")),
+        QColor(QStringLiteral("#89B4FA")), QColor(QStringLiteral("#F5C2E7")),
+        QColor(QStringLiteral("#94E2D5")), QColor(QStringLiteral("#A6ADC8"))},
+        QColor(QStringLiteral("#CDD6F4")), QColor(QStringLiteral("#1E1E2E")),
+        QColor(QStringLiteral("#F5E0DC"))},
+};
+// clang-format on
+
+const ColorScheme *activeScheme = &kColorSchemes[0];
+
 struct TerminalStyle
 {
-    QColor foreground = QColor(QStringLiteral("#ECEFF4"));
-    QColor background = QColor(QStringLiteral("#121212"));
+    QColor foreground;
+    QColor background;
     bool defaultForeground = true;
     bool defaultBackground = true;
     bool bold = false;
@@ -61,7 +143,10 @@ using TerminalRow = QVector<TerminalCell>;
 
 TerminalStyle defaultStyle()
 {
-    return TerminalStyle{};
+    TerminalStyle style;
+    style.foreground = activeScheme->foreground;
+    style.background = activeScheme->background;
+    return style;
 }
 
 TerminalCell blankCell()
@@ -161,27 +246,8 @@ QChar mapDecSpecialGraphics(QChar character)
 
 QColor colorFromIndex(int index)
 {
-    static const std::array<QColor, 16> basicColors = {
-        QColor(QStringLiteral("#121212")),
-        QColor(QStringLiteral("#BF616A")),
-        QColor(QStringLiteral("#A3BE8C")),
-        QColor(QStringLiteral("#EBCB8B")),
-        QColor(QStringLiteral("#81A1C1")),
-        QColor(QStringLiteral("#B48EAD")),
-        QColor(QStringLiteral("#88C0D0")),
-        QColor(QStringLiteral("#E5E9F0")),
-        QColor(QStringLiteral("#4C566A")),
-        QColor(QStringLiteral("#BF616A")),
-        QColor(QStringLiteral("#A3BE8C")),
-        QColor(QStringLiteral("#EBCB8B")),
-        QColor(QStringLiteral("#81A1C1")),
-        QColor(QStringLiteral("#B48EAD")),
-        QColor(QStringLiteral("#8FBCBB")),
-        QColor(QStringLiteral("#ECEFF4"))
-    };
-
-    if (index >= 0 && index < static_cast<int>(basicColors.size())) {
-        return basicColors[static_cast<std::size_t>(index)];
+    if (index >= 0 && index < 16) {
+        return activeScheme->palette[static_cast<std::size_t>(index)];
     }
 
     if (index >= 16 && index <= 231) {
@@ -205,8 +271,8 @@ QColor colorFromIndex(int index)
 
 QString styleToCss(const TerminalStyle &style, bool cursorCell)
 {
-    QColor foreground = style.defaultForeground ? QColor(QStringLiteral("#ECEFF4")) : style.foreground;
-    QColor background = style.defaultBackground ? QColor(QStringLiteral("#121212")) : style.background;
+    QColor foreground = style.defaultForeground ? activeScheme->foreground : style.foreground;
+    QColor background = style.defaultBackground ? activeScheme->background : style.background;
 
     if (style.inverse) {
         std::swap(foreground, background);
@@ -214,8 +280,8 @@ QString styleToCss(const TerminalStyle &style, bool cursorCell)
 
     if (cursorCell) {
         std::swap(foreground, background);
-        if (background == QColor(QStringLiteral("#121212"))) {
-            background = QColor(QStringLiteral("#88C0D0"));
+        if (background == activeScheme->background) {
+            background = activeScheme->cursorColor;
         }
     }
 
@@ -358,6 +424,15 @@ TerminalBackend::TerminalBackend(QObject *parent)
                                                 kDefaultFontPixelSize).toInt(),
                                  kMinFontPixelSize, kMaxFontPixelSize);
 
+    m_colorScheme = settings.value(QStringLiteral("terminal/colorScheme"),
+                                   kColorSchemes[0].name).toString();
+    for (const auto &scheme : kColorSchemes) {
+        if (scheme.name == m_colorScheme) {
+            activeScheme = &scheme;
+            break;
+        }
+    }
+
     m_pollTimer->setInterval(500);
     connect(m_pollTimer, &QTimer::timeout, this, &TerminalBackend::pollChildStatus);
 
@@ -444,6 +519,65 @@ void TerminalBackend::setFontPixelSize(int fontPixelSize)
     QSettings settings;
     settings.setValue(QStringLiteral("terminal/fontPixelSize"), m_fontPixelSize);
     emit fontPixelSizeChanged();
+}
+
+QString TerminalBackend::colorScheme() const
+{
+    return m_colorScheme;
+}
+
+QStringList TerminalBackend::colorSchemeList() const
+{
+    QStringList list;
+    for (const auto &scheme : kColorSchemes) {
+        list.append(scheme.name);
+    }
+    return list;
+}
+
+void TerminalBackend::setColorScheme(const QString &name)
+{
+    if (m_colorScheme == name) {
+        return;
+    }
+
+    for (const auto &scheme : kColorSchemes) {
+        if (scheme.name == name) {
+            activeScheme = &scheme;
+            m_colorScheme = name;
+            QSettings settings;
+            settings.setValue(QStringLiteral("terminal/colorScheme"), name);
+            markScreenDirty();
+            emit colorSchemeChanged();
+            return;
+        }
+    }
+}
+
+QStringList TerminalBackend::colorSchemeColors(const QString &name) const
+{
+    for (const auto &scheme : kColorSchemes) {
+        if (scheme.name == name) {
+            QStringList colors;
+            for (const auto &c : scheme.palette) {
+                colors.append(c.name(QColor::HexRgb));
+            }
+            colors.append(scheme.foreground.name(QColor::HexRgb));
+            colors.append(scheme.background.name(QColor::HexRgb));
+            return colors;
+        }
+    }
+    return {};
+}
+
+QColor TerminalBackend::backgroundColor() const
+{
+    return activeScheme->background;
+}
+
+QColor TerminalBackend::foregroundColor() const
+{
+    return activeScheme->foreground;
 }
 
 void TerminalBackend::sendText(const QString &text)

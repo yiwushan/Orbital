@@ -6,7 +6,7 @@ import MyDesktop.Backend 1.0
 
 Page {
     id: terminalPage
-    background: Rectangle { color: "#121212" }
+    background: Rectangle { color: terminalBackend.backgroundColor }
 
     required property var terminalBackend
 
@@ -245,6 +245,13 @@ Page {
 
                     TerminalPillButton { text: "Clear"; accentColor: "#4C566A"; onClicked: terminalPage.terminalBackend.clearTerminal() }
                     TerminalPillButton { text: "Reset"; prominent: true; accentColor: "#81A1C1"; onClicked: terminalPage.terminalBackend.resetTerminal() }
+                    TerminalPillButton {
+                        text: "Theme"
+                        accentColor: "#B48EAD"
+                        onClicked: stackView.push("qrc:/MyDesktop/Backend/qml/TerminalColorSchemePage.qml", {
+                            "terminalBackend": terminalPage.terminalBackend
+                        })
+                    }
                 }
             }
         }

@@ -103,6 +103,7 @@ qt_add_qml_module(appOrbital
         qml/AboutPage.qml
         qml/TerminalView.qml
         qml/TerminalPage.qml
+        qml/TerminalColorSchemePage.qml
     RESOURCES
         assets/logo.svg
         assets/power.svg

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QObject>
 
 class QSocketNotifier;
@@ -21,6 +22,10 @@ class TerminalBackend : public QObject
     Q_PROPERTY(int fontPixelSize READ fontPixelSize WRITE setFontPixelSize NOTIFY fontPixelSizeChanged)
     Q_PROPERTY(int minFontPixelSize READ minFontPixelSize CONSTANT)
     Q_PROPERTY(int maxFontPixelSize READ maxFontPixelSize CONSTANT)
+    Q_PROPERTY(QString colorScheme READ colorScheme WRITE setColorScheme NOTIFY colorSchemeChanged)
+    Q_PROPERTY(QStringList colorSchemeList READ colorSchemeList CONSTANT)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY colorSchemeChanged)
+    Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY colorSchemeChanged)
 
 public:
     explicit TerminalBackend(QObject *parent = nullptr);
@@ -39,7 +44,13 @@ public:
     int minFontPixelSize() const;
     int maxFontPixelSize() const;
     void setFontPixelSize(int fontPixelSize);
+    QString colorScheme() const;
+    QStringList colorSchemeList() const;
+    void setColorScheme(const QString &name);
+    QColor backgroundColor() const;
+    QColor foregroundColor() const;
 
+    Q_INVOKABLE QStringList colorSchemeColors(const QString &name) const;
     Q_INVOKABLE void sendText(const QString &text);
     Q_INVOKABLE void sendCharacter(const QString &text, int modifiers = 0);
     Q_INVOKABLE void sendKey(int key, int modifiers = 0);
@@ -59,6 +70,7 @@ signals:
     void sizeChanged();
     void cursorChanged();
     void fontPixelSizeChanged();
+    void colorSchemeChanged();
 
 private slots:
     void handleReadyRead();
@@ -131,6 +143,7 @@ private:
     char m_charsetTarget = 0;
     QString m_title = QStringLiteral("Terminal");
     QString m_statusText = QStringLiteral("Starting shell...");
+    QString m_colorScheme;
     bool m_g0SpecialGraphics = false;
     bool m_g1SpecialGraphics = false;
     bool m_shiftOut = false;

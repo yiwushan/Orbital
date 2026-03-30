@@ -163,7 +163,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#0f1117"
+        color: terminalBackend ? Qt.darker(terminalBackend.backgroundColor, 1.15) : "#0f1117"
         border.color: "#242833"
         border.width: 1
         radius: 12
@@ -206,7 +206,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: html
                 textFormat: Text.RichText
-                color: "#ECEFF4"
+                color: terminalBackend ? terminalBackend.foregroundColor : "#ECEFF4"
                 font.family: root.fontFamily
                 font.pixelSize: root.fontPixelSize
                 wrapMode: Text.NoWrap
