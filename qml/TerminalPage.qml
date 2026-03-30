@@ -6,7 +6,7 @@ import MyDesktop.Backend 1.0
 
 Page {
     id: terminalPage
-    background: Rectangle { color: terminalBackend.backgroundColor }
+    background: Rectangle { color: "#121212" }
 
     required property var terminalBackend
 

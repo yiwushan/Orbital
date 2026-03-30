@@ -163,7 +163,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: terminalBackend ? Qt.darker(terminalBackend.backgroundColor, 1.15) : "#0f1117"
+        color: terminalBackend ? terminalBackend.backgroundColor : "#0f1117"
         border.color: "#242833"
         border.width: 1
         radius: 12
