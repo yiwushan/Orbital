@@ -3,7 +3,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-DEFAULT_QT_SCALE_FACTOR="2.2"
+# OnePlus 6 (1080x2280) tuned default.
+DEFAULT_QT_SCALE_FACTOR="2.14"
 DEFAULT_TOUCH_INPUT_PATH="/dev/input/event5"
 DEFAULT_TOUCH_INHIBIT_PATH="/sys/devices/platform/soc@0/ac0000.geniqup/a90000.i2c/i2c-12/12-0020/rmi4-00/input/input5/inhibited"
 DEFAULT_POWER_KEY_PATH="/dev/input/event0"

@@ -7,7 +7,8 @@ import MyDesktop.Backend 1.0
 Window {
     id: window
     width: 360
-    height: 720
+    // OnePlus 6 target ratio: 19:9 -> 360 x 760
+    height: 760
     visible: true
     title: "Dashboard"
     color: "#121212"

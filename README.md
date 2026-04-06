@@ -105,7 +105,7 @@ cd build
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `--scale <值>` | Qt 缩放因子 | `2.2` |
+| `--scale <值>` | Qt 缩放因子 | `2.14` |
 | `--touch-input-path <路径>` | 触摸屏 evdev 设备路径 | `/dev/input/event5` |
 | `--touch-inhibit-path <路径>` | 触摸抑制 sysfs 路径 | `/sys/devices/...input5/inhibited` |
 | `--power-key-path <路径>` | 电源键 evdev 设备路径 | `/dev/input/event0` |
@@ -124,6 +124,12 @@ cd build
 - **触摸抑制路径**：`--touch-inhibit-path`（不支持的设备可指向不存在的路径）
 - **电源键/音量键路径**：`--power-key-path`、`--volume-key-path`
 - **缩放因子**：`--scale`（根据屏幕分辨率和 DPI 调整）
+
+## 更新与部署作业规范
+
+为保证每次更新可追踪、可回滚、可复现，后续所有更新与推送请严格遵循：
+
+- [`docs/UPDATE_DEPLOY_SOP.md`](docs/UPDATE_DEPLOY_SOP.md)
 
 ## 贡献
 
