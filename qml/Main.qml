@@ -26,31 +26,6 @@ Window {
         return backend.remoteServers[index]
     }
 
-    function denseHistory(values, targetCount) {
-        if (!values || values.length === 0)
-            return []
-
-        var target = Math.max(2, targetCount || 120)
-        if (values.length >= target)
-            return values
-
-        var out = []
-        if (values.length === 1) {
-            for (var i = 0; i < target; ++i)
-                out.push(values[0])
-            return out
-        }
-
-        for (var j = 0; j < target; ++j) {
-            var pos = j * (values.length - 1) / (target - 1)
-            var left = Math.floor(pos)
-            var right = Math.min(values.length - 1, left + 1)
-            var t = pos - left
-            out.push(values[left] * (1 - t) + values[right] * t)
-        }
-        return out
-    }
-
     function triggerRemoteRefreshBurst() {
         Qt.callLater(function() {
             if (backend && typeof backend.refreshRemoteServers === "function") {
@@ -967,7 +942,7 @@ Window {
                     {
                         label: "CPU",
                         values: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuHistory)
-                                ? window.denseHistory(remoteCpuPopup.serverData.cpuHistory, 160) : [],
+                                ? remoteCpuPopup.serverData.cpuHistory : [],
                         color: "#FF5252"
                     }
                 ]
@@ -1071,7 +1046,7 @@ Window {
                     {
                         label: "MEM",
                         values: (remoteMemPopup.serverData && remoteMemPopup.serverData.memHistory)
-                                ? window.denseHistory(remoteMemPopup.serverData.memHistory, 160) : [],
+                                ? remoteMemPopup.serverData.memHistory : [],
                         color: "#2196F3"
                     }
                 ]
@@ -2146,7 +2121,7 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "CPU", values: window.denseHistory(serverData.cpuHistory || [], 96), color: "#FF5252" }
+                                                    { label: "CPU", values: serverData.cpuHistory || [], color: "#FF5252" }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"
@@ -2214,7 +2189,7 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "MEM", values: window.denseHistory(serverData.memHistory || [], 96), color: "#2196F3" }
+                                                    { label: "MEM", values: serverData.memHistory || [], color: "#2196F3" }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"
