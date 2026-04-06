@@ -3,6 +3,7 @@
 #include "SystemHelpers.h"
 
 #include <QDir>
+#include <QHash>
 #include <QProcess>
 #include <QTextStream>
 #include <QTimer>
@@ -14,10 +15,17 @@ namespace {
 
 constexpr int kHostCount = 2;
 constexpr int kCpuGroupCount = 8;
+constexpr int kHistoryLimit = 90;
 
 QString formatGbFromKb(qint64 valueKb)
 {
     return QString::number(valueKb / 1024.0 / 1024.0, 'f', 1) + QStringLiteral(" GB");
+}
+
+QString formatMemoryFromKb(qint64 valueKb)
+{
+    const qint64 safeKb = std::max<qint64>(0, valueKb);
+    return Backend::formatSize(safeKb * 1024);
 }
 
 } // namespace
@@ -37,6 +45,14 @@ RemoteServersBackend::RemoteServersBackend(QObject *parent)
     m_timer->setInterval(m_intervalSec * 1000);
     m_timer->start();
     QTimer::singleShot(1200, this, &RemoteServersBackend::refreshNow);
+}
+
+void RemoteServersBackend::appendHistory(QVariantList &history, double value) const
+{
+    history.append(std::clamp(value, 0.0, 100.0));
+    while (history.size() > kHistoryLimit) {
+        history.removeFirst();
+    }
 }
 
 QVariantList RemoteServersBackend::servers() const
@@ -222,14 +238,16 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
     enum class Section {
         Cpu,
         Mem,
-        Disk,
+        DiskRoot,
+        DiskAll,
         Load
     };
 
     Section section = Section::Cpu;
     QStringList cpuLines;
     QStringList memLines;
-    QStringList diskLines;
+    QStringList diskRootLines;
+    QStringList diskAllLines;
     QStringList loadLines;
 
     const QStringList lines = output.split(QLatin1Char('\n'));
@@ -243,8 +261,12 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
             section = Section::Mem;
             continue;
         }
-        if (line == QLatin1String("__ORBITAL_DF__")) {
-            section = Section::Disk;
+        if (line == QLatin1String("__ORBITAL_DF_ROOT__")) {
+            section = Section::DiskRoot;
+            continue;
+        }
+        if (line == QLatin1String("__ORBITAL_DF_ALL__")) {
+            section = Section::DiskAll;
             continue;
         }
         if (line == QLatin1String("__ORBITAL_LOAD__")) {
@@ -259,8 +281,11 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
         case Section::Mem:
             memLines.append(line);
             break;
-        case Section::Disk:
-            diskLines.append(line);
+        case Section::DiskRoot:
+            diskRootLines.append(line);
+            break;
+        case Section::DiskAll:
+            diskAllLines.append(line);
             break;
         case Section::Load:
             loadLines.append(line);
@@ -367,34 +392,94 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
     host.prevCpuIdles = cpuIdles;
     host.hasPrevCpu = true;
 
-    qint64 memTotalKb = 0;
-    qint64 memAvailKb = 0;
+    QHash<QString, qint64> memValues;
     for (const QString &line : memLines) {
         const QString simplified = line.simplified();
-        if (simplified.startsWith(QStringLiteral("MemTotal:"))) {
-            memTotalKb = simplified.section(QLatin1Char(' '), 1, 1).toLongLong();
-        } else if (simplified.startsWith(QStringLiteral("MemAvailable:"))) {
-            memAvailKb = simplified.section(QLatin1Char(' '), 1, 1).toLongLong();
+        const int colonPos = simplified.indexOf(QLatin1Char(':'));
+        if (colonPos <= 0) {
+            continue;
+        }
+
+        const QString key = simplified.left(colonPos);
+        const QString valueText = simplified.mid(colonPos + 1).trimmed().section(QLatin1Char(' '), 0, 0);
+        bool ok = false;
+        const qint64 valueKb = valueText.toLongLong(&ok);
+        if (ok) {
+            memValues.insert(key, valueKb);
         }
     }
+
+    const qint64 memTotalKb = memValues.value(QStringLiteral("MemTotal"), 0);
+    const qint64 memAvailKb = memValues.value(QStringLiteral("MemAvailable"), 0);
+    const qint64 memFreeKb = memValues.value(QStringLiteral("MemFree"), 0);
+    const qint64 buffersKb = memValues.value(QStringLiteral("Buffers"), 0);
+    const qint64 cachedKb = memValues.value(QStringLiteral("Cached"), 0);
+    const qint64 swapTotalKb = memValues.value(QStringLiteral("SwapTotal"), 0);
+    const qint64 swapFreeKb = memValues.value(QStringLiteral("SwapFree"), 0);
+    const qint64 swapUsedKb = std::max<qint64>(0, swapTotalKb - swapFreeKb);
+
     if (memTotalKb > 0) {
         const qint64 memUsedKb = std::max<qint64>(0, memTotalKb - memAvailKb);
         host.memPercent = static_cast<double>(memUsedKb) / memTotalKb;
         host.memDetail = formatGbFromKb(memUsedKb) + QStringLiteral(" / ") + formatGbFromKb(memTotalKb);
+        host.memInfo = {
+            { QStringLiteral("Used"), formatMemoryFromKb(memUsedKb) },
+            { QStringLiteral("Total"), formatMemoryFromKb(memTotalKb) },
+            { QStringLiteral("Available"), formatMemoryFromKb(memAvailKb) },
+            { QStringLiteral("Free"), formatMemoryFromKb(memFreeKb) },
+            { QStringLiteral("Cached"), formatMemoryFromKb(cachedKb) },
+            { QStringLiteral("Buffers"), formatMemoryFromKb(buffersKb) },
+            { QStringLiteral("Swap Used"), formatMemoryFromKb(swapUsedKb) },
+            { QStringLiteral("Swap Free"), formatMemoryFromKb(swapFreeKb) },
+            { QStringLiteral("Swap Total"), formatMemoryFromKb(swapTotalKb) }
+        };
     } else {
         host.memPercent = 0.0;
         host.memDetail = QStringLiteral("--");
+        host.memInfo.clear();
     }
 
     qint64 diskUsedBytes = 0;
     qint64 diskTotalBytes = 0;
-    for (const QString &line : diskLines) {
+    QVariantList partitions;
+    for (const QString &line : diskAllLines) {
         const QStringList parts = line.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (parts.size() < 6) {
+        if (parts.size() < 7 || parts.first() == QLatin1String("Filesystem")) {
             continue;
         }
 
-        if (parts.last() != QLatin1String("/")) {
+        bool okTotal = false;
+        bool okUsed = false;
+        bool okAvail = false;
+        const qint64 totalBytes = parts.at(2).toLongLong(&okTotal);
+        const qint64 usedBytes = parts.at(3).toLongLong(&okUsed);
+        const qint64 availBytes = parts.at(4).toLongLong(&okAvail);
+        if (!okTotal || !okUsed || !okAvail || totalBytes <= 0) {
+            continue;
+        }
+
+        const QString mountPoint = parts.mid(6).join(QStringLiteral(" "));
+        const double percent = static_cast<double>(usedBytes) / totalBytes;
+        QVariantMap partition;
+        partition[QStringLiteral("filesystem")] = parts.at(0);
+        partition[QStringLiteral("type")] = parts.at(1);
+        partition[QStringLiteral("size")] = Backend::formatSize(totalBytes);
+        partition[QStringLiteral("used")] = Backend::formatSize(usedBytes);
+        partition[QStringLiteral("available")] = Backend::formatSize(availBytes);
+        partition[QStringLiteral("percent")] = percent;
+        partition[QStringLiteral("mount")] = mountPoint;
+        partitions.append(partition);
+
+        if (mountPoint == QLatin1String("/") && diskTotalBytes <= 0) {
+            diskTotalBytes = totalBytes;
+            diskUsedBytes = usedBytes;
+        }
+    }
+    host.diskPartitions = partitions;
+
+    for (const QString &line : diskRootLines) {
+        const QStringList parts = line.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() < 6 || parts.last() != QLatin1String("/")) {
             continue;
         }
 
@@ -426,6 +511,10 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
         host.loadAvg = QStringLiteral("--");
     }
 
+    appendHistory(host.cpuHistory, host.cpuTotal * 100.0);
+    appendHistory(host.memHistory, host.memPercent * 100.0);
+    appendHistory(host.diskHistory, host.diskPercent * 100.0);
+
     return true;
 }
 
@@ -441,10 +530,15 @@ QVariantMap RemoteServersBackend::stateToMap(const HostState &host) const
     map[QStringLiteral("coreCount")] = host.coreCount;
     map[QStringLiteral("cpuTotal")] = host.cpuTotal;
     map[QStringLiteral("cpuGroups")] = host.cpuGroups;
+    map[QStringLiteral("cpuHistory")] = host.cpuHistory;
     map[QStringLiteral("memPercent")] = host.memPercent;
     map[QStringLiteral("memDetail")] = host.memDetail;
+    map[QStringLiteral("memHistory")] = host.memHistory;
+    map[QStringLiteral("memInfo")] = host.memInfo;
     map[QStringLiteral("diskPercent")] = host.diskPercent;
     map[QStringLiteral("diskDetail")] = host.diskDetail;
+    map[QStringLiteral("diskHistory")] = host.diskHistory;
+    map[QStringLiteral("diskPartitions")] = host.diskPartitions;
     map[QStringLiteral("loadAvg")] = host.loadAvg;
     map[QStringLiteral("lastUpdate")] = host.lastUpdated.isValid()
         ? host.lastUpdated.toString(QStringLiteral("HH:mm:ss"))
@@ -459,8 +553,10 @@ QString RemoteServersBackend::remoteCollectCommand() const
         "cat /proc/stat; "
         "echo __ORBITAL_MEM__; "
         "cat /proc/meminfo; "
-        "echo __ORBITAL_DF__; "
+        "echo __ORBITAL_DF_ROOT__; "
         "df -B1 /; "
+        "echo __ORBITAL_DF_ALL__; "
+        "df -B1 -T; "
         "echo __ORBITAL_LOAD__; "
         "cat /proc/loadavg'");
 }

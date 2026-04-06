@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QObject>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QVector>
 
 class QTimer;
@@ -46,13 +47,19 @@ private:
         int coreCount = 0;
         double cpuTotal = 0.0;
         QVariantList cpuGroups;
+        QVariantList cpuHistory;
+        QVariantList memHistory;
+        QVariantList diskHistory;
         double memPercent = 0.0;
         QString memDetail = QStringLiteral("--");
+        QVariantMap memInfo;
         double diskPercent = 0.0;
         QString diskDetail = QStringLiteral("--");
+        QVariantList diskPartitions;
         QString loadAvg = QStringLiteral("--");
     };
 
+    void appendHistory(QVariantList &history, double value) const;
     QString envValueAny(const QStringList &keys) const;
     void loadConfigFromEnv();
     void startFetch(int index);

@@ -15,6 +15,16 @@ Window {
 
     property bool historyExpanded: true
     property string screenshotToastMessage: ""
+    property var remoteMemoryInfoKeys: [
+        "Used", "Total", "Available", "Free",
+        "Cached", "Buffers", "Swap Used", "Swap Free", "Swap Total"
+    ]
+
+    function remoteServerAt(index) {
+        if (!backend || !backend.remoteServers || index < 0 || index >= backend.remoteServers.length)
+            return null
+        return backend.remoteServers[index]
+    }
 
     SystemMonitor {
         id: backend
@@ -752,6 +762,445 @@ Window {
         }
     }
 
+    Popup {
+        id: remoteCpuPopup
+        property int serverIndex: -1
+        property var serverData: window.remoteServerAt(serverIndex)
+
+        parent: Overlay.overlay
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: parent.width * 0.9
+        height: parent.height * 0.62
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Overlay.modal: Rectangle { color: "#aa000000" }
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 200 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 1.0; to: 0.9; duration: 200 }
+        }
+
+        background: Rectangle {
+            color: "#1e1e1e"
+            radius: 15
+            border.color: "#333333"
+            border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            Item { height: 8; Layout.fillWidth: true }
+
+            Text {
+                text: (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.name : "Remote") + " CPU"
+                color: "white"
+                font.pixelSize: 20
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                text: (remoteCpuPopup.serverData ? (remoteCpuPopup.serverData.host + ":" + remoteCpuPopup.serverData.port) : "--")
+                      + " · " + (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.status : "--")
+                      + " · " + (remoteCpuPopup.serverData ? ("@" + remoteCpuPopup.serverData.lastUpdate) : "--")
+                color: "#9db0c3"
+                font.pixelSize: 11
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideMiddle
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                spacing: 8
+
+                Text {
+                    text: "Usage " + (Number(remoteCpuPopup.serverData ? remoteCpuPopup.serverData.cpuTotal : 0) * 100).toFixed(0) + "%"
+                    color: cpuColor(Number(remoteCpuPopup.serverData ? remoteCpuPopup.serverData.cpuTotal : 0))
+                    font.pixelSize: 13
+                    font.bold: true
+                }
+
+                Text {
+                    text: "Cores " + (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.coreCount : 0)
+                    color: "#c6ccd7"
+                    font.pixelSize: 12
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Text {
+                    text: "Load " + (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.loadAvg : "--")
+                    color: "#a7b9cc"
+                    font.pixelSize: 11
+                    font.family: "Monospace"
+                }
+            }
+
+            Row {
+                id: remoteCpuPopupGroupRow
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 4
+                property var groups: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuGroups)
+                                     ? remoteCpuPopup.serverData.cpuGroups : []
+
+                Repeater {
+                    model: 8
+
+                    Rectangle {
+                        required property int index
+                        property real groupLoad: (remoteCpuPopupGroupRow.groups && index < remoteCpuPopupGroupRow.groups.length)
+                                                 ? Number(remoteCpuPopupGroupRow.groups[index]) : 0
+
+                        width: 32
+                        height: 26
+                        radius: 4
+                        color: "#202634"
+                        border.width: 1
+                        border.color: "#343b48"
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.margins: 1
+                            height: Math.max(0, (parent.height - 2) * parent.groupLoad)
+                            radius: 3
+                            color: cpuColor(parent.groupLoad)
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: Math.round(parent.groupLoad * 100)
+                            color: "#e7ebf0"
+                            font.pixelSize: 8
+                            font.bold: true
+                            font.family: "Monospace"
+                        }
+                    }
+                }
+            }
+
+            LineChart {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                chartTitle: "History"
+                datasets: [
+                    {
+                        label: "CPU",
+                        values: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuHistory)
+                                ? remoteCpuPopup.serverData.cpuHistory : [],
+                        color: "#FF5252"
+                    }
+                ]
+                fixedMax: 100
+                suffix: "%"
+                showLegend: false
+            }
+
+            Item { height: 8; Layout.fillWidth: true }
+        }
+    }
+
+    Popup {
+        id: remoteMemPopup
+        property int serverIndex: -1
+        property var serverData: window.remoteServerAt(serverIndex)
+
+        parent: Overlay.overlay
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: parent.width * 0.9
+        height: parent.height * 0.68
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Overlay.modal: Rectangle { color: "#aa000000" }
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 200 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 1.0; to: 0.9; duration: 200 }
+        }
+
+        background: Rectangle {
+            color: "#1e1e1e"
+            radius: 15
+            border.color: "#333333"
+            border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            Item { height: 8; Layout.fillWidth: true }
+
+            Text {
+                text: (remoteMemPopup.serverData ? remoteMemPopup.serverData.name : "Remote") + " Memory"
+                color: "white"
+                font.pixelSize: 20
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                text: (remoteMemPopup.serverData ? remoteMemPopup.serverData.memDetail : "--")
+                      + "  (" + (Number(remoteMemPopup.serverData ? remoteMemPopup.serverData.memPercent : 0) * 100).toFixed(0) + "%)"
+                color: "#9fb4cf"
+                font.pixelSize: 12
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            LineChart {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 170
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                chartTitle: "History"
+                datasets: [
+                    {
+                        label: "MEM",
+                        values: (remoteMemPopup.serverData && remoteMemPopup.serverData.memHistory)
+                                ? remoteMemPopup.serverData.memHistory : [],
+                        color: "#2196F3"
+                    }
+                ]
+                fixedMax: 100
+                suffix: "%"
+                showLegend: false
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                height: 1
+                color: "#323a43"
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                text: "Memory Breakdown"
+                color: "#b7c4d4"
+                font.pixelSize: 11
+                font.bold: true
+            }
+
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                clip: true
+                spacing: 8
+                model: window.remoteMemoryInfoKeys
+
+                delegate: RowLayout {
+                    required property string modelData
+                    property var infoMap: (remoteMemPopup.serverData && remoteMemPopup.serverData.memInfo)
+                                          ? remoteMemPopup.serverData.memInfo : ({})
+                    visible: infoMap[modelData] !== undefined && infoMap[modelData] !== ""
+                    width: ListView.view.width
+                    spacing: 8
+
+                    Text {
+                        text: modelData
+                        color: "#888888"
+                        font.pixelSize: 12
+                        Layout.preferredWidth: parent.width * 0.45
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: parent.infoMap[modelData]
+                        color: "white"
+                        font.pixelSize: 12
+                        font.bold: true
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        elide: Text.ElideMiddle
+                    }
+                }
+            }
+
+            Item { height: 8; Layout.fillWidth: true }
+        }
+    }
+
+    Popup {
+        id: remoteDiskPopup
+        property int serverIndex: -1
+        property var serverData: window.remoteServerAt(serverIndex)
+
+        parent: Overlay.overlay
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: parent.width * 0.92
+        height: parent.height * 0.7
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Overlay.modal: Rectangle { color: "#aa000000" }
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 200 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 1.0; to: 0.9; duration: 200 }
+        }
+
+        background: Rectangle {
+            color: "#1e1e1e"
+            radius: 15
+            border.color: "#333333"
+            border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            Item { height: 8; Layout.fillWidth: true }
+
+            Text {
+                text: (remoteDiskPopup.serverData ? remoteDiskPopup.serverData.name : "Remote") + " Disk"
+                color: "white"
+                font.pixelSize: 20
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                text: (remoteDiskPopup.serverData ? remoteDiskPopup.serverData.diskDetail : "--")
+                      + "  (" + (Number(remoteDiskPopup.serverData ? remoteDiskPopup.serverData.diskPercent : 0) * 100).toFixed(0) + "%)"
+                color: "#9fb4cf"
+                font.pixelSize: 12
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            LineChart {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 160
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                chartTitle: "History"
+                datasets: [
+                    {
+                        label: "DISK",
+                        values: (remoteDiskPopup.serverData && remoteDiskPopup.serverData.diskHistory)
+                                ? remoteDiskPopup.serverData.diskHistory : [],
+                        color: "#00E5FF"
+                    }
+                ]
+                fixedMax: 100
+                suffix: "%"
+                showLegend: false
+            }
+
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: 15
+                Layout.rightMargin: 15
+                spacing: 10
+                clip: true
+                model: (remoteDiskPopup.serverData && remoteDiskPopup.serverData.diskPartitions)
+                       ? remoteDiskPopup.serverData.diskPartitions : []
+
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 74
+                    color: "#2d2d2d"
+                    radius: 8
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 3
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                text: modelData.mount
+                                color: "white"
+                                font.bold: true
+                                font.pixelSize: 14
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
+                            }
+
+                            Text {
+                                text: modelData.used + " / " + modelData.size
+                                color: "#aaaaaa"
+                                font.pixelSize: 11
+                                Layout.preferredWidth: implicitWidth
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text {
+                                text: modelData.filesystem
+                                color: "#666666"
+                                font.pixelSize: 10
+                                Layout.maximumWidth: parent.width * 0.6
+                                elide: Text.ElideMiddle
+                            }
+
+                            Text {
+                                text: "[" + modelData.type + "]"
+                                color: "#666666"
+                                font.pixelSize: 10
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 4
+                            color: "#444"
+                            radius: 2
+
+                            Rectangle {
+                                width: parent.width * Number(modelData.percent || 0)
+                                height: parent.height
+                                color: diskColor(Number(modelData.percent || 0))
+                                radius: 2
+                            }
+                        }
+                    }
+                }
+            }
+
+            Item { height: 8; Layout.fillWidth: true }
+        }
+    }
+
     // ================= 页面导航 (StackView) =================
     StackView {
         id: stackView
@@ -1455,7 +1904,7 @@ Window {
                             property var serverData: modelData
 
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 126
+                            Layout.preferredHeight: 212
                             radius: 12
                             color: "#1a1f29"
                             border.width: 1
@@ -1464,7 +1913,7 @@ Window {
                             ColumnLayout {
                                 anchors.fill: parent
                                 anchors.margins: 8
-                                spacing: 5
+                                spacing: 6
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -1508,80 +1957,228 @@ Window {
 
                                 RowLayout {
                                     Layout.fillWidth: true
+                                    Layout.preferredHeight: 104
                                     spacing: 8
 
-                                    Text {
-                                        text: "CPU " + (Number(serverData.cpuTotal || 0) * 100).toFixed(0) + "% · " + (serverData.coreCount || 0) + "C"
-                                        color: cpuColor(Number(serverData.cpuTotal || 0))
-                                        font.pixelSize: 12
-                                        font.bold: true
+                                    Rectangle {
+                                        id: remoteCpuCard
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        radius: 10
+                                        color: remoteCpuTap.pressed ? "#2a303a" : "#1a1d23"
+                                        border.color: "#2f3744"
+                                        border.width: 1
+
+                                        ColumnLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 8
+                                            spacing: 4
+
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 6
+
+                                                Text {
+                                                    text: "CPU"
+                                                    color: "white"
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                }
+
+                                                Item { Layout.fillWidth: true }
+
+                                                Text {
+                                                    text: (Number(serverData.cpuTotal || 0) * 100).toFixed(0) + "% · " + (serverData.coreCount || 0) + "C"
+                                                    color: cpuColor(Number(serverData.cpuTotal || 0))
+                                                    font.pixelSize: 11
+                                                    font.bold: true
+                                                }
+                                            }
+
+                                            Row {
+                                                id: remoteCpuGroupRow
+                                                property var groups: serverData.cpuGroups || []
+                                                spacing: 2
+
+                                                Repeater {
+                                                    model: 8
+
+                                                    Rectangle {
+                                                        required property int index
+                                                        property real groupLoad: (remoteCpuGroupRow.groups && index < remoteCpuGroupRow.groups.length)
+                                                                                 ? Number(remoteCpuGroupRow.groups[index]) : 0
+
+                                                        width: Math.max(12, Math.floor((remoteCpuCard.width - 24) / 8))
+                                                        height: 18
+                                                        radius: 3
+                                                        color: "#202634"
+                                                        border.width: 1
+                                                        border.color: "#343b48"
+
+                                                        Rectangle {
+                                                            anchors.left: parent.left
+                                                            anchors.right: parent.right
+                                                            anchors.bottom: parent.bottom
+                                                            anchors.margins: 1
+                                                            height: Math.max(0, (parent.height - 2) * parent.groupLoad)
+                                                            radius: 2
+                                                            color: cpuColor(parent.groupLoad)
+                                                        }
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: Math.round(parent.groupLoad * 100)
+                                                            color: "#e7ebf0"
+                                                            font.pixelSize: 7
+                                                            font.bold: true
+                                                            font.family: "Monospace"
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            LineChart {
+                                                Layout.fillWidth: true
+                                                Layout.fillHeight: true
+                                                chartTitle: "History"
+                                                datasets: [
+                                                    { label: "CPU", values: serverData.cpuHistory || [], color: "#FF5252" }
+                                                ]
+                                                fixedMax: 100
+                                                suffix: "%"
+                                                showLegend: false
+                                            }
+                                        }
+
+                                        TapHandler {
+                                            id: remoteCpuTap
+                                            onTapped: {
+                                                remoteCpuPopup.serverIndex = index
+                                                remoteCpuPopup.open()
+                                            }
+                                        }
                                     }
 
-                                    Item { Layout.fillWidth: true }
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        radius: 10
+                                        color: remoteMemTap.pressed ? "#2a303a" : "#1a1d23"
+                                        border.color: "#2f3744"
+                                        border.width: 1
 
-                                    Text {
-                                        text: "MEM " + (Number(serverData.memPercent || 0) * 100).toFixed(0) + "%"
-                                        color: "#7EC8FF"
-                                        font.pixelSize: 11
-                                        font.bold: true
-                                    }
+                                        ColumnLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 8
+                                            spacing: 4
 
-                                    Text {
-                                        text: "DISK " + (Number(serverData.diskPercent || 0) * 100).toFixed(0) + "%"
-                                        color: "#8BE09A"
-                                        font.pixelSize: 11
-                                        font.bold: true
-                                    }
-                                }
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 6
 
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: "MEM " + (serverData.memDetail || "--")
-                                          + "   DISK " + (serverData.diskDetail || "--")
-                                          + "   LOAD " + (serverData.loadAvg || "--")
-                                    color: "#a9b7c8"
-                                    font.pixelSize: 10
-                                    elide: Text.ElideRight
-                                }
+                                                Text {
+                                                    text: "Memory"
+                                                    color: "white"
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                }
 
-                                Row {
-                                    id: remoteGroupRow
-                                    property var groups: serverData.cpuGroups || []
-                                    spacing: 2
+                                                Item { Layout.fillWidth: true }
 
-                                    Repeater {
-                                        model: 8
-
-                                        Rectangle {
-                                            required property int index
-                                            property real groupLoad: (remoteGroupRow.groups && index < remoteGroupRow.groups.length)
-                                                                     ? Number(remoteGroupRow.groups[index]) : 0
-
-                                            width: 38
-                                            height: 30
-                                            radius: 4
-                                            color: "#202634"
-                                            border.width: 1
-                                            border.color: "#343b48"
-
-                                            Rectangle {
-                                                anchors.left: parent.left
-                                                anchors.right: parent.right
-                                                anchors.bottom: parent.bottom
-                                                anchors.margins: 1
-                                                height: Math.max(0, (parent.height - 2) * parent.groupLoad)
-                                                radius: 3
-                                                color: cpuColor(parent.groupLoad)
+                                                Text {
+                                                    text: (Number(serverData.memPercent || 0) * 100).toFixed(0) + "%"
+                                                    color: memColor(Number(serverData.memPercent || 0))
+                                                    font.pixelSize: 12
+                                                    font.bold: true
+                                                }
                                             }
 
                                             Text {
-                                                anchors.centerIn: parent
-                                                text: Math.round(parent.groupLoad * 100)
-                                                color: "#e7ebf0"
-                                                font.pixelSize: 8
-                                                font.bold: true
-                                                font.family: "Monospace"
+                                                text: serverData.memDetail || "--"
+                                                color: "#d0d5de"
+                                                font.pixelSize: 10
+                                                elide: Text.ElideRight
                                             }
+
+                                            LineChart {
+                                                Layout.fillWidth: true
+                                                Layout.fillHeight: true
+                                                chartTitle: "History"
+                                                datasets: [
+                                                    { label: "MEM", values: serverData.memHistory || [], color: "#2196F3" }
+                                                ]
+                                                fixedMax: 100
+                                                suffix: "%"
+                                                showLegend: false
+                                            }
+                                        }
+
+                                        TapHandler {
+                                            id: remoteMemTap
+                                            onTapped: {
+                                                remoteMemPopup.serverIndex = index
+                                                remoteMemPopup.open()
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 56
+                                    radius: 10
+                                    color: remoteDiskTap.pressed ? "#2a303a" : "#202736"
+                                    border.color: "#2f3744"
+                                    border.width: 1
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        anchors.topMargin: 6
+                                        anchors.bottomMargin: 6
+                                        spacing: 2
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 6
+
+                                            Text {
+                                                text: "Disk " + (Number(serverData.diskPercent || 0) * 100).toFixed(0) + "%"
+                                                color: diskColor(Number(serverData.diskPercent || 0))
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                            }
+
+                                            Item { Layout.fillWidth: true }
+
+                                            Text {
+                                                text: serverData.diskDetail || "--"
+                                                color: "#c6ccd7"
+                                                font.pixelSize: 10
+                                                elide: Text.ElideMiddle
+                                                Layout.maximumWidth: 138
+                                            }
+                                        }
+
+                                        LineChart {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            chartTitle: "History"
+                                            datasets: [
+                                                { label: "DISK", values: serverData.diskHistory || [], color: "#00E5FF" }
+                                            ]
+                                            fixedMax: 100
+                                            suffix: "%"
+                                            showLegend: false
+                                        }
+                                    }
+
+                                    TapHandler {
+                                        id: remoteDiskTap
+                                        onTapped: {
+                                            remoteDiskPopup.serverIndex = index
+                                            remoteDiskPopup.open()
                                         }
                                     }
                                 }
