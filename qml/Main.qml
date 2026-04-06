@@ -26,6 +26,31 @@ Window {
         return backend.remoteServers[index]
     }
 
+    function denseHistory(values, targetCount) {
+        if (!values || values.length === 0)
+            return []
+
+        var target = Math.max(2, targetCount || 120)
+        if (values.length >= target)
+            return values
+
+        var out = []
+        if (values.length === 1) {
+            for (var i = 0; i < target; ++i)
+                out.push(values[0])
+            return out
+        }
+
+        for (var j = 0; j < target; ++j) {
+            var pos = j * (values.length - 1) / (target - 1)
+            var left = Math.floor(pos)
+            var right = Math.min(values.length - 1, left + 1)
+            var t = pos - left
+            out.push(values[left] * (1 - t) + values[right] * t)
+        }
+        return out
+    }
+
     SystemMonitor {
         id: backend
     }
@@ -765,7 +790,19 @@ Window {
     Popup {
         id: remoteCpuPopup
         property int serverIndex: -1
-        property var serverData: window.remoteServerAt(serverIndex)
+        property string serverName: ""
+        property var serverData: {
+            if (!backend || !backend.remoteServers)
+                return null
+            if (serverName !== "") {
+                for (var i = 0; i < backend.remoteServers.length; ++i) {
+                    var item = backend.remoteServers[i]
+                    if ((item.name || "") === serverName)
+                        return item
+                }
+            }
+            return window.remoteServerAt(serverIndex)
+        }
 
         parent: Overlay.overlay
         x: Math.round((parent.width - width) / 2)
@@ -808,9 +845,7 @@ Window {
                 Layout.fillWidth: true
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
-                text: (remoteCpuPopup.serverData ? (remoteCpuPopup.serverData.host + ":" + remoteCpuPopup.serverData.port) : "--")
-                      + " · " + (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.status : "--")
-                      + " · " + (remoteCpuPopup.serverData ? ("@" + remoteCpuPopup.serverData.lastUpdate) : "--")
+                text: "Updated: " + (remoteCpuPopup.serverData ? remoteCpuPopup.serverData.lastUpdate : "--")
                 color: "#9db0c3"
                 font.pixelSize: 11
                 horizontalAlignment: Text.AlignHCenter
@@ -900,7 +935,7 @@ Window {
                     {
                         label: "CPU",
                         values: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuHistory)
-                                ? remoteCpuPopup.serverData.cpuHistory : [],
+                                ? window.denseHistory(remoteCpuPopup.serverData.cpuHistory, 160) : [],
                         color: "#FF5252"
                     }
                 ]
@@ -910,7 +945,7 @@ Window {
                 showLine: false
                 showPoints: true
                 fillArea: false
-                pointRadius: 2
+                pointRadius: 1
             }
 
             Item { height: 8; Layout.fillWidth: true }
@@ -920,7 +955,19 @@ Window {
     Popup {
         id: remoteMemPopup
         property int serverIndex: -1
-        property var serverData: window.remoteServerAt(serverIndex)
+        property string serverName: ""
+        property var serverData: {
+            if (!backend || !backend.remoteServers)
+                return null
+            if (serverName !== "") {
+                for (var i = 0; i < backend.remoteServers.length; ++i) {
+                    var item = backend.remoteServers[i]
+                    if ((item.name || "") === serverName)
+                        return item
+                }
+            }
+            return window.remoteServerAt(serverIndex)
+        }
 
         parent: Overlay.overlay
         x: Math.round((parent.width - width) / 2)
@@ -971,6 +1018,17 @@ Window {
                 elide: Text.ElideRight
             }
 
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                text: "Updated: " + (remoteMemPopup.serverData ? remoteMemPopup.serverData.lastUpdate : "--")
+                color: "#8fa4bf"
+                font.pixelSize: 11
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
             LineChart {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 170
@@ -981,7 +1039,7 @@ Window {
                     {
                         label: "MEM",
                         values: (remoteMemPopup.serverData && remoteMemPopup.serverData.memHistory)
-                                ? remoteMemPopup.serverData.memHistory : [],
+                                ? window.denseHistory(remoteMemPopup.serverData.memHistory, 160) : [],
                         color: "#2196F3"
                     }
                 ]
@@ -991,7 +1049,7 @@ Window {
                 showLine: false
                 showPoints: true
                 fillArea: false
-                pointRadius: 2
+                pointRadius: 1
             }
 
             Rectangle {
@@ -1056,7 +1114,19 @@ Window {
     Popup {
         id: remoteDiskPopup
         property int serverIndex: -1
-        property var serverData: window.remoteServerAt(serverIndex)
+        property string serverName: ""
+        property var serverData: {
+            if (!backend || !backend.remoteServers)
+                return null
+            if (serverName !== "") {
+                for (var i = 0; i < backend.remoteServers.length; ++i) {
+                    var item = backend.remoteServers[i]
+                    if ((item.name || "") === serverName)
+                        return item
+                }
+            }
+            return window.remoteServerAt(serverIndex)
+        }
 
         parent: Overlay.overlay
         x: Math.round((parent.width - width) / 2)
@@ -1107,27 +1177,15 @@ Window {
                 elide: Text.ElideRight
             }
 
-            LineChart {
+            Text {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 160
-                Layout.leftMargin: 16
-                Layout.rightMargin: 16
-                chartTitle: "History"
-                datasets: [
-                    {
-                        label: "DISK",
-                        values: (remoteDiskPopup.serverData && remoteDiskPopup.serverData.diskHistory)
-                                ? remoteDiskPopup.serverData.diskHistory : [],
-                        color: "#00E5FF"
-                    }
-                ]
-                fixedMax: -1
-                suffix: "%"
-                showLegend: false
-                showLine: false
-                showPoints: true
-                fillArea: false
-                pointRadius: 2
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                text: "Updated: " + (remoteDiskPopup.serverData ? remoteDiskPopup.serverData.lastUpdate : "--")
+                color: "#8fa4bf"
+                font.pixelSize: 11
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
             }
 
             ListView {
@@ -1960,11 +2018,11 @@ Window {
                                     Item { Layout.fillWidth: true }
 
                                     Text {
-                                        text: (serverData.host || "--") + ":" + (serverData.port || 22) + "  @" + (serverData.lastUpdate || "--")
+                                        text: serverData.lastUpdate || "--"
                                         color: "#9db0c3"
                                         font.pixelSize: 10
-                                        elide: Text.ElideLeft
-                                        Layout.maximumWidth: 170
+                                        elide: Text.ElideRight
+                                        Layout.maximumWidth: 90
                                         horizontalAlignment: Text.AlignRight
                                     }
                                 }
@@ -2056,7 +2114,7 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "CPU", values: serverData.cpuHistory || [], color: "#FF5252" }
+                                                    { label: "CPU", values: window.denseHistory(serverData.cpuHistory || [], 96), color: "#FF5252" }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"
@@ -2064,7 +2122,7 @@ Window {
                                                 showLine: false
                                                 showPoints: true
                                                 fillArea: false
-                                                pointRadius: 2
+                                                pointRadius: 1
                                                 compact: true
                                                 showScaleLabels: false
                                             }
@@ -2076,6 +2134,8 @@ Window {
                                             z: 5
                                             onClicked: {
                                                 remoteCpuPopup.serverIndex = remoteServerCard.serverIndex
+                                                remoteCpuPopup.serverName = remoteServerCard.serverData.name || ""
+                                                backend.refreshRemoteServers()
                                                 remoteCpuPopup.open()
                                             }
                                         }
@@ -2127,7 +2187,7 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "MEM", values: serverData.memHistory || [], color: "#2196F3" }
+                                                    { label: "MEM", values: window.denseHistory(serverData.memHistory || [], 96), color: "#2196F3" }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"
@@ -2135,7 +2195,7 @@ Window {
                                                 showLine: false
                                                 showPoints: true
                                                 fillArea: false
-                                                pointRadius: 2
+                                                pointRadius: 1
                                                 compact: true
                                                 showScaleLabels: false
                                             }
@@ -2147,6 +2207,8 @@ Window {
                                             z: 5
                                             onClicked: {
                                                 remoteMemPopup.serverIndex = remoteServerCard.serverIndex
+                                                remoteMemPopup.serverName = remoteServerCard.serverData.name || ""
+                                                backend.refreshRemoteServers()
                                                 remoteMemPopup.open()
                                             }
                                         }
@@ -2155,7 +2217,7 @@ Window {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 56
+                                    Layout.preferredHeight: 48
                                     radius: 10
                                     color: remoteDiskClick.pressed ? "#2a303a" : "#202736"
                                     border.color: "#2f3744"
@@ -2191,22 +2253,20 @@ Window {
                                             }
                                         }
 
-                                        LineChart {
+                                        Rectangle {
                                             Layout.fillWidth: true
-                                            Layout.fillHeight: true
-                                            chartTitle: "History"
-                                            datasets: [
-                                                { label: "DISK", values: serverData.diskHistory || [], color: "#00E5FF" }
-                                            ]
-                                            fixedMax: -1
-                                            suffix: "%"
-                                            showLegend: false
-                                            showLine: false
-                                            showPoints: true
-                                            fillArea: false
-                                            pointRadius: 2
-                                            compact: true
-                                            showScaleLabels: false
+                                            height: 4
+                                            radius: 2
+                                            color: "#394252"
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                width: parent.width * Number(serverData.diskPercent || 0)
+                                                radius: 2
+                                                color: diskColor(Number(serverData.diskPercent || 0))
+                                            }
                                         }
                                     }
 
@@ -2216,6 +2276,8 @@ Window {
                                         z: 5
                                         onClicked: {
                                             remoteDiskPopup.serverIndex = remoteServerCard.serverIndex
+                                            remoteDiskPopup.serverName = remoteServerCard.serverData.name || ""
+                                            backend.refreshRemoteServers()
                                             remoteDiskPopup.open()
                                         }
                                     }

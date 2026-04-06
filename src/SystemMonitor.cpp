@@ -252,6 +252,13 @@ void SystemMonitor::systemCmd(const QString &cmd)
     }
 }
 
+void SystemMonitor::refreshRemoteServers()
+{
+    if (m_remoteServersBackend) {
+        m_remoteServersBackend->refreshNow();
+    }
+}
+
 void SystemMonitor::refreshStats()
 {
     m_statsBackend->update();
