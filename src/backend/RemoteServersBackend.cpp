@@ -16,6 +16,8 @@ namespace {
 constexpr int kHostCount = 2;
 constexpr int kCpuGroupCount = 8;
 constexpr int kHistoryLimit = 240;
+constexpr int kFastRefreshIntervalSec = 5;
+constexpr int kFastRefreshDurationSec = 60;
 
 QString formatGbFromKb(qint64 valueKb)
 {
@@ -41,9 +43,11 @@ RemoteServersBackend::RemoteServersBackend(QObject *parent)
 
     loadConfigFromEnv();
 
-    connect(m_timer, &QTimer::timeout, this, &RemoteServersBackend::refreshNow);
-    m_timer->setInterval(m_intervalSec * 1000);
-    m_timer->start();
+    connect(m_timer, &QTimer::timeout, this, [this]() {
+        refreshNow();
+        applyTimerCadence();
+    });
+    applyTimerCadence();
     QTimer::singleShot(1200, this, &RemoteServersBackend::refreshNow);
 }
 
@@ -52,6 +56,27 @@ void RemoteServersBackend::appendHistory(QVariantList &history, double value) co
     history.append(std::clamp(value, 0.0, 100.0));
     while (history.size() > kHistoryLimit) {
         history.removeFirst();
+    }
+}
+
+void RemoteServersBackend::applyTimerCadence()
+{
+    int desiredIntervalSec = m_intervalSec;
+    const QDateTime now = QDateTime::currentDateTime();
+    if (m_fastRefreshUntil.isValid()) {
+        if (now < m_fastRefreshUntil) {
+            desiredIntervalSec = kFastRefreshIntervalSec;
+        } else {
+            m_fastRefreshUntil = QDateTime();
+        }
+    }
+
+    const int intervalMs = std::max(1, desiredIntervalSec) * 1000;
+    if (m_timer->interval() != intervalMs) {
+        m_timer->setInterval(intervalMs);
+    }
+    if (!m_timer->isActive()) {
+        m_timer->start();
     }
 }
 
@@ -78,7 +103,7 @@ void RemoteServersBackend::setIntervalSec(int seconds)
     }
 
     m_intervalSec = bounded;
-    m_timer->setInterval(m_intervalSec * 1000);
+    applyTimerCadence();
     emit intervalSecChanged();
 }
 
@@ -87,6 +112,14 @@ void RemoteServersBackend::refreshNow()
     for (int i = 0; i < m_hosts.size(); ++i) {
         startFetch(i);
     }
+    applyTimerCadence();
+}
+
+void RemoteServersBackend::refreshInteractiveBurst()
+{
+    m_fastRefreshUntil = QDateTime::currentDateTime().addSecs(kFastRefreshDurationSec);
+    refreshNow();
+    applyTimerCadence();
 }
 
 QString RemoteServersBackend::envValueAny(const QStringList &keys) const

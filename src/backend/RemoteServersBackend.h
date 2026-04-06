@@ -22,6 +22,7 @@ public:
     void setIntervalSec(int seconds);
 
     Q_INVOKABLE void refreshNow();
+    void refreshInteractiveBurst();
 
 signals:
     void dataChanged();
@@ -60,6 +61,7 @@ private:
     };
 
     void appendHistory(QVariantList &history, double value) const;
+    void applyTimerCadence();
     QString envValueAny(const QStringList &keys) const;
     void loadConfigFromEnv();
     void startFetch(int index);
@@ -70,4 +72,5 @@ private:
     QVector<HostState> m_hosts;
     QTimer *m_timer = nullptr;
     int m_intervalSec = 60;
+    QDateTime m_fastRefreshUntil;
 };

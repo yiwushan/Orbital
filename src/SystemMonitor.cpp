@@ -252,10 +252,14 @@ void SystemMonitor::systemCmd(const QString &cmd)
     }
 }
 
-void SystemMonitor::refreshRemoteServers()
+void SystemMonitor::refreshRemoteServers(bool interactiveBurst)
 {
     if (m_remoteServersBackend) {
-        m_remoteServersBackend->refreshNow();
+        if (interactiveBurst) {
+            m_remoteServersBackend->refreshInteractiveBurst();
+        } else {
+            m_remoteServersBackend->refreshNow();
+        }
     }
 }
 

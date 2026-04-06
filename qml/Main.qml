@@ -2135,7 +2135,7 @@ Window {
                                             onClicked: {
                                                 remoteCpuPopup.serverIndex = remoteServerCard.serverIndex
                                                 remoteCpuPopup.serverName = remoteServerCard.serverData.name || ""
-                                                backend.refreshRemoteServers()
+                                                backend.refreshRemoteServers(true)
                                                 remoteCpuPopup.open()
                                             }
                                         }
@@ -2208,7 +2208,7 @@ Window {
                                             onClicked: {
                                                 remoteMemPopup.serverIndex = remoteServerCard.serverIndex
                                                 remoteMemPopup.serverName = remoteServerCard.serverData.name || ""
-                                                backend.refreshRemoteServers()
+                                                backend.refreshRemoteServers(true)
                                                 remoteMemPopup.open()
                                             }
                                         }
@@ -2277,7 +2277,7 @@ Window {
                                         onClicked: {
                                             remoteDiskPopup.serverIndex = remoteServerCard.serverIndex
                                             remoteDiskPopup.serverName = remoteServerCard.serverData.name || ""
-                                            backend.refreshRemoteServers()
+                                            backend.refreshRemoteServers(true)
                                             remoteDiskPopup.open()
                                         }
                                     }

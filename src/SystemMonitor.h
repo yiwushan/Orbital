@@ -90,7 +90,7 @@ public:
     Q_INVOKABLE void scanWifiNetworks();
     Q_INVOKABLE QString nextScreenshotPath() const;
     Q_INVOKABLE void systemCmd(const QString &cmd);
-    Q_INVOKABLE void refreshRemoteServers();
+    Q_INVOKABLE void refreshRemoteServers(bool interactiveBurst = false);
 
 signals:
     void statsChanged();
