@@ -779,8 +779,8 @@ Window {
             property int topPadding: 0
             property int bottomPadding: 10
             property int metricsHeight: Math.round(window.height * 0.25)
-            property int metricsBottomRowHeight: 56
-            property int metricsTopRowHeight: Math.max(100, metricsHeight - metricsBottomRowHeight - 10)
+            property int metricsBottomRowHeight: 52
+            property int metricsTopRowHeight: Math.max(84, metricsHeight - metricsBottomRowHeight - 8)
 
             Rectangle {
                 anchors.fill: parent
@@ -836,182 +836,309 @@ Window {
                     }
                 }
 
-                RowLayout {
+                Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: homeRoot.metricsTopRowHeight
-                    spacing: 10
+                    Layout.preferredHeight: homeRoot.metricsHeight
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        color: cpuTap.pressed ? "#2a303a" : "#1a1d23"
-                        radius: 12
-                        border.color: "#2c3038"
-                        border.width: 1
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 8
 
-                        ColumnLayout {
+                        RowLayout {
                             Layout.fillWidth: true
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 6
+                            Layout.preferredHeight: homeRoot.metricsTopRowHeight
+                            spacing: 10
 
-                            RowLayout {
+                            Rectangle {
                                 Layout.fillWidth: true
-                                spacing: 6
+                                Layout.fillHeight: true
+                                color: cpuTap.pressed ? "#2a303a" : "#1a1d23"
+                                radius: 12
+                                border.color: "#2c3038"
+                                border.width: 1
 
-                                Text {
-                                    text: "CPU"
-                                    color: "white"
-                                    font.pixelSize: 15
-                                    font.bold: true
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 6
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        Text {
+                                            text: "CPU"
+                                            color: "white"
+                                            font.pixelSize: 15
+                                            font.bold: true
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Text {
+                                            text: (backend.cpuTotal * 100).toFixed(0) + "%"
+                                            color: cpuColor(backend.cpuTotal)
+                                            font.pixelSize: 16
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Row {
+                                        spacing: 2
+
+                                        Repeater {
+                                            model: 8
+
+                                            Rectangle {
+                                                required property int index
+                                                property real coreLoad: backend.cpuCores[index] || 0
+
+                                                width: 22
+                                                height: 20
+                                                radius: 4
+                                                color: "#202634"
+                                                border.width: 1
+                                                border.color: "#343b48"
+
+                                                Rectangle {
+                                                    anchors.left: parent.left
+                                                    anchors.right: parent.right
+                                                    anchors.bottom: parent.bottom
+                                                    anchors.margins: 1
+                                                    height: Math.max(0, (parent.height - 2) * parent.coreLoad)
+                                                    radius: 3
+                                                    color: cpuColor(parent.coreLoad)
+                                                }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: Math.round(parent.coreLoad * 100)
+                                                    color: "#e7ebf0"
+                                                    font.pixelSize: 8
+                                                    font.bold: true
+                                                    font.family: "Monospace"
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    LineChart {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        chartTitle: "History"
+                                        datasets: [
+                                            { label: "Total", values: backend.cpuHistory, color: "#FF5252" }
+                                        ]
+                                        fixedMax: 100
+                                        suffix: "%"
+                                        showLegend: false
+                                    }
                                 }
 
-                                Item { Layout.fillWidth: true }
-
-                                Text {
-                                    text: (backend.cpuTotal * 100).toFixed(0) + "%"
-                                    color: cpuColor(backend.cpuTotal)
-                                    font.pixelSize: 16
-                                    font.bold: true
+                                TapHandler {
+                                    id: cpuTap
+                                    enabled: !cpuDetailsPopup.visible
+                                    onTapped: cpuDetailsPopup.open()
                                 }
                             }
 
-                            Row {
-                                spacing: 2
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                color: "#1a1d23"
+                                radius: 12
+                                border.color: "#2c3038"
+                                border.width: 1
 
-                                Repeater {
-                                    model: 8
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 6
 
-                                    Rectangle {
-                                        required property int index
-                                        property real coreLoad: backend.cpuCores[index] || 0
-
-                                        width: 22
-                                        height: 20
-                                        radius: 4
-                                        color: "#202634"
-                                        border.width: 1
-                                        border.color: "#343b48"
-
-                                        Rectangle {
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            anchors.bottom: parent.bottom
-                                            anchors.margins: 1
-                                            height: Math.max(0, (parent.height - 2) * parent.coreLoad)
-                                            radius: 3
-                                            color: cpuColor(parent.coreLoad)
-                                        }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
 
                                         Text {
-                                            anchors.centerIn: parent
-                                            text: Math.round(parent.coreLoad * 100)
-                                            color: "#e7ebf0"
-                                            font.pixelSize: 8
+                                            text: "Memory"
+                                            color: "white"
+                                            font.pixelSize: 15
                                             font.bold: true
-                                            font.family: "Monospace"
                                         }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Text {
+                                            text: (backend.memPercent * 100).toFixed(0) + "%"
+                                            color: memColor(backend.memPercent)
+                                            font.pixelSize: 16
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Text {
+                                        text: backend.memDetail
+                                        color: "#d0d5de"
+                                        font.pixelSize: 12
+                                    }
+
+                                    LineChart {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        chartTitle: "History"
+                                        datasets: [
+                                            { label: "RAM", values: backend.memHistory, color: "#2196F3" }
+                                        ]
+                                        fixedMax: 100
+                                        suffix: "%"
+                                        showLegend: false
                                     }
                                 }
                             }
+                        }
 
-                            LineChart {
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: homeRoot.metricsBottomRowHeight
+                            spacing: 10
+
+                            Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                chartTitle: "History"
-                                datasets: [
-                                    { label: "Total", values: backend.cpuHistory, color: "#FF5252" }
-                                ]
-                                fixedMax: 100
-                                suffix: "%"
-                                showLegend: false
-                            }
-                        }
+                                radius: 10
+                                color: diskTap.pressed ? "#2a303a" : "#202736"
+                                border.color: "#2f3744"
+                                border.width: 1
 
-                        TapHandler {
-                            id: cpuTap
-                            enabled: !cpuDetailsPopup.visible
-                            onTapped: cpuDetailsPopup.open()
-                        }
-                    }
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        color: "#1a1d23"
-                        radius: 12
-                        border.color: "#2c3038"
-                        border.width: 1
+                                    Text {
+                                        text: "Disk " + (backend.diskPercent * 100).toFixed(0) + "%"
+                                        color: diskColor(backend.diskPercent)
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                    }
 
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 6
+                                    Item { Layout.fillWidth: true }
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 6
-
-                                Text {
-                                    text: "Memory"
-                                    color: "white"
-                                    font.pixelSize: 15
-                                    font.bold: true
+                                    Text {
+                                        text: backend.diskRootUsage
+                                        color: "#c6ccd7"
+                                        font.pixelSize: 12
+                                        elide: Text.ElideMiddle
+                                        Layout.maximumWidth: 120
+                                    }
                                 }
 
-                                Item { Layout.fillWidth: true }
-
-                                Text {
-                                    text: (backend.memPercent * 100).toFixed(0) + "%"
-                                    color: memColor(backend.memPercent)
-                                    font.pixelSize: 16
-                                    font.bold: true
+                                TapHandler {
+                                    id: diskTap
+                                    enabled: !diskPopup.visible
+                                    onTapped: diskPopup.open()
                                 }
                             }
 
-                            Text {
-                                text: backend.memDetail
-                                color: "#d0d5de"
-                                font.pixelSize: 12
-                            }
-
-                            LineChart {
-                                Layout.fillWidth: true
+                            Rectangle {
+                                Layout.preferredWidth: 132
                                 Layout.fillHeight: true
-                                chartTitle: "History"
-                                datasets: [
-                                    { label: "RAM", values: backend.memHistory, color: "#2196F3" }
-                                ]
-                                fixedMax: 100
-                                suffix: "%"
-                                showLegend: false
+                                radius: 10
+                                color: batTap.pressed ? "#2a303a" : "#202736"
+                                border.color: "#2f3744"
+                                border.width: 1
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 6
+
+                                    Item {
+                                        Layout.preferredWidth: 20
+                                        Layout.preferredHeight: 12
+
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 17
+                                            height: 10
+                                            radius: 2
+                                            color: "#1b202a"
+                                            border.width: 1
+                                            border.color: "#9aa3b3"
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.bottom: parent.bottom
+                                                anchors.margins: 1
+                                                width: Math.max(1, (parent.width - 2) * backend.batPercent / 100)
+                                                height: parent.height - 2
+                                                radius: 1
+                                                color: batteryColor(backend.batPercent, backend.batState)
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            x: 17
+                                            y: 3
+                                            width: 2
+                                            height: 4
+                                            radius: 1
+                                            color: "#9aa3b3"
+                                        }
+                                    }
+
+                                    Text {
+                                        text: backend.batPercent + "%"
+                                        color: batteryColor(backend.batPercent, backend.batState)
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Text {
+                                        text: backend.batState
+                                        color: "#c6ccd7"
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        Layout.maximumWidth: 52
+                                    }
+                                }
+
+                                TapHandler {
+                                    id: batTap
+                                    enabled: !batPopup.visible
+                                    onTapped: batPopup.open()
+                                }
                             }
                         }
                     }
                 }
 
-                RowLayout {
+                Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: homeRoot.metricsBottomRowHeight
-                    spacing: 10
+                    Layout.preferredHeight: 92
+                    radius: 12
+                    color: netTap.pressed ? "#2a2f39" : "#1a1f29"
+                    border.color: "#2c3038"
+                    border.width: 1
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: 10
-                        color: diskTap.pressed ? "#2a303a" : "#202736"
-                        border.color: "#2f3744"
-                        border.width: 1
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
 
                         RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
+                            Layout.fillWidth: true
                             spacing: 8
 
                             Text {
-                                text: "Disk " + (backend.diskPercent * 100).toFixed(0) + "%"
-                                color: diskColor(backend.diskPercent)
+                                text: "Network"
+                                color: "white"
                                 font.pixelSize: 14
                                 font.bold: true
                             }
@@ -1019,93 +1146,42 @@ Window {
                             Item { Layout.fillWidth: true }
 
                             Text {
-                                text: backend.diskRootUsage
-                                color: "#c6ccd7"
+                                text: "⬇ " + backend.netRxSpeed
+                                color: "#00E676"
                                 font.pixelSize: 12
-                                elide: Text.ElideMiddle
-                                Layout.maximumWidth: 120
+                                font.family: "Monospace"
+                                font.bold: true
+                            }
+
+                            Rectangle { width: 1; height: 18; color: "#384050" }
+
+                            Text {
+                                text: "⬆ " + backend.netTxSpeed
+                                color: "#FF9800"
+                                font.pixelSize: 12
+                                font.family: "Monospace"
+                                font.bold: true
                             }
                         }
 
-                        TapHandler {
-                            id: diskTap
-                            enabled: !diskPopup.visible
-                            onTapped: diskPopup.open()
+                        LineChart {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            chartTitle: "History"
+                            datasets: [
+                                { label: "Down", values: backend.netRxHistory, color: "#00E676" },
+                                { label: "Up", values: backend.netTxHistory, color: "#FF9800" }
+                            ]
+                            fixedMax: -1
+                            suffix: " KB/s"
+                            showLegend: false
                         }
                     }
 
-                    Rectangle {
-                        Layout.preferredWidth: 132
-                        Layout.fillHeight: true
-                        radius: 10
-                        color: batTap.pressed ? "#2a303a" : "#202736"
-                        border.color: "#2f3744"
-                        border.width: 1
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 6
-
-                            Item {
-                                Layout.preferredWidth: 20
-                                Layout.preferredHeight: 12
-
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 17
-                                    height: 10
-                                    radius: 2
-                                    color: "#1b202a"
-                                    border.width: 1
-                                    border.color: "#9aa3b3"
-
-                                    Rectangle {
-                                        anchors.left: parent.left
-                                        anchors.bottom: parent.bottom
-                                        anchors.margins: 1
-                                        width: Math.max(1, (parent.width - 2) * backend.batPercent / 100)
-                                        height: parent.height - 2
-                                        radius: 1
-                                        color: batteryColor(backend.batPercent, backend.batState)
-                                    }
-                                }
-
-                                Rectangle {
-                                    x: 17
-                                    y: 3
-                                    width: 2
-                                    height: 4
-                                    radius: 1
-                                    color: "#9aa3b3"
-                                }
-                            }
-
-                            Text {
-                                text: backend.batPercent + "%"
-                                color: batteryColor(backend.batPercent, backend.batState)
-                                font.pixelSize: 14
-                                font.bold: true
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: backend.batState
-                                color: "#c6ccd7"
-                                font.pixelSize: 11
-                                elide: Text.ElideRight
-                                Layout.maximumWidth: 52
-                            }
-                        }
-
-                        TapHandler {
-                            id: batTap
-                            enabled: !batPopup.visible
-                            onTapped: batPopup.open()
-                        }
+                    TapHandler {
+                        id: netTap
+                        enabled: !netPopup.visible
+                        onTapped: netPopup.open()
                     }
                 }
 
