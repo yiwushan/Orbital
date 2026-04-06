@@ -294,7 +294,7 @@ void SystemStatsBackend::readCpuTemp()
     double bestTempC = -1.0;
     int bestScore = -1;
 
-    const auto consider = [&](const QString &name, const QString &rawText) mutable {
+    auto consider = [&](const QString &name, const QString &rawText) {
         bool ok = false;
         const qint64 raw = rawText.trimmed().toLongLong(&ok);
         if (!ok || raw <= 0) {
