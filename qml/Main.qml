@@ -51,6 +51,38 @@ Window {
         return out
     }
 
+    function triggerRemoteRefreshBurst() {
+        Qt.callLater(function() {
+            if (backend && typeof backend.refreshRemoteServers === "function") {
+                backend.refreshRemoteServers(true)
+            }
+        })
+    }
+
+    function openRemoteCpuPopup(index, name) {
+        remoteCpuPopup.serverIndex = index
+        remoteCpuPopup.serverName = name || ""
+        if (!remoteCpuPopup.visible)
+            remoteCpuPopup.open()
+        triggerRemoteRefreshBurst()
+    }
+
+    function openRemoteMemPopup(index, name) {
+        remoteMemPopup.serverIndex = index
+        remoteMemPopup.serverName = name || ""
+        if (!remoteMemPopup.visible)
+            remoteMemPopup.open()
+        triggerRemoteRefreshBurst()
+    }
+
+    function openRemoteDiskPopup(index, name) {
+        remoteDiskPopup.serverIndex = index
+        remoteDiskPopup.serverName = name || ""
+        if (!remoteDiskPopup.visible)
+            remoteDiskPopup.open()
+        triggerRemoteRefreshBurst()
+    }
+
     SystemMonitor {
         id: backend
     }
@@ -2037,7 +2069,7 @@ Window {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         radius: 10
-                                        color: remoteCpuClick.pressed ? "#2a303a" : "#1a1d23"
+                                        color: remoteCpuTap.pressed ? "#2a303a" : "#1a1d23"
                                         border.color: "#2f3744"
                                         border.width: 1
 
@@ -2129,15 +2161,10 @@ Window {
                                         }
 
                                         MouseArea {
-                                            id: remoteCpuClick
+                                            id: remoteCpuTap
                                             anchors.fill: parent
-                                            z: 5
-                                            onClicked: {
-                                                remoteCpuPopup.serverIndex = remoteServerCard.serverIndex
-                                                remoteCpuPopup.serverName = remoteServerCard.serverData.name || ""
-                                                backend.refreshRemoteServers(true)
-                                                remoteCpuPopup.open()
-                                            }
+                                            preventStealing: true
+                                            onPressed: window.openRemoteCpuPopup(remoteServerCard.serverIndex, remoteServerCard.serverData.name || "")
                                         }
                                     }
 
@@ -2145,7 +2172,7 @@ Window {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         radius: 10
-                                        color: remoteMemClick.pressed ? "#2a303a" : "#1a1d23"
+                                        color: remoteMemTap.pressed ? "#2a303a" : "#1a1d23"
                                         border.color: "#2f3744"
                                         border.width: 1
 
@@ -2202,15 +2229,10 @@ Window {
                                         }
 
                                         MouseArea {
-                                            id: remoteMemClick
+                                            id: remoteMemTap
                                             anchors.fill: parent
-                                            z: 5
-                                            onClicked: {
-                                                remoteMemPopup.serverIndex = remoteServerCard.serverIndex
-                                                remoteMemPopup.serverName = remoteServerCard.serverData.name || ""
-                                                backend.refreshRemoteServers(true)
-                                                remoteMemPopup.open()
-                                            }
+                                            preventStealing: true
+                                            onPressed: window.openRemoteMemPopup(remoteServerCard.serverIndex, remoteServerCard.serverData.name || "")
                                         }
                                     }
                                 }
@@ -2219,7 +2241,7 @@ Window {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 48
                                     radius: 10
-                                    color: remoteDiskClick.pressed ? "#2a303a" : "#202736"
+                                    color: remoteDiskTap.pressed ? "#2a303a" : "#202736"
                                     border.color: "#2f3744"
                                     border.width: 1
 
@@ -2271,15 +2293,10 @@ Window {
                                     }
 
                                     MouseArea {
-                                        id: remoteDiskClick
+                                        id: remoteDiskTap
                                         anchors.fill: parent
-                                        z: 5
-                                        onClicked: {
-                                            remoteDiskPopup.serverIndex = remoteServerCard.serverIndex
-                                            remoteDiskPopup.serverName = remoteServerCard.serverData.name || ""
-                                            backend.refreshRemoteServers(true)
-                                            remoteDiskPopup.open()
-                                        }
+                                        preventStealing: true
+                                        onPressed: window.openRemoteDiskPopup(remoteServerCard.serverIndex, remoteServerCard.serverData.name || "")
                                     }
                                 }
 
