@@ -1549,6 +1549,49 @@ Window {
             property int metricsHeight: Math.round(window.height * 0.25)
             property int metricsBottomRowHeight: 52
             property int metricsTopRowHeight: Math.max(84, metricsHeight - metricsBottomRowHeight - 8)
+            property bool antiBurnEnabled: true
+            property int antiBurnOffsetX: 0
+            property int antiBurnStepIndex: -1
+            property real antiBurnOverlayOpacity: 0.02
+            property var antiBurnShiftPattern: [0, 2, -2, 3, -3, 1, -1, 0]
+
+            function stepAntiBurnShift() {
+                if (!antiBurnEnabled) {
+                    antiBurnOffsetX = 0
+                    antiBurnStepIndex = -1
+                    return
+                }
+
+                antiBurnStepIndex = (antiBurnStepIndex + 1) % antiBurnShiftPattern.length
+                antiBurnOffsetX = antiBurnShiftPattern[antiBurnStepIndex]
+            }
+
+            onAntiBurnEnabledChanged: {
+                if (antiBurnEnabled) {
+                    antiBurnOverlayOpacity = 0.02
+                    stepAntiBurnShift()
+                } else {
+                    antiBurnOffsetX = 0
+                    antiBurnStepIndex = -1
+                    antiBurnOverlayOpacity = 0
+                }
+            }
+
+            Behavior on antiBurnOffsetX {
+                NumberAnimation {
+                    duration: 900
+                    easing.type: Easing.InOutSine
+                }
+            }
+
+            Timer {
+                id: antiBurnShiftTimer
+                interval: 45000
+                repeat: true
+                running: homeRoot.visible && homeRoot.antiBurnEnabled
+                triggeredOnStart: true
+                onTriggered: homeRoot.stepAntiBurnShift()
+            }
 
             Rectangle {
                 anchors.fill: parent
@@ -1562,6 +1605,7 @@ Window {
                 anchors.rightMargin: homeRoot.horizontalPadding
                 anchors.topMargin: homeRoot.topPadding
                 anchors.bottomMargin: homeRoot.bottomPadding
+                transform: Translate { x: homeRoot.antiBurnOffsetX; y: 0 }
                 spacing: 10
 
                 Item {
@@ -2305,6 +2349,30 @@ Window {
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                }
+            }
+
+            Rectangle {
+                id: antiBurnDimLayer
+                anchors.fill: parent
+                color: "#000000"
+                opacity: homeRoot.antiBurnEnabled ? homeRoot.antiBurnOverlayOpacity : 0
+                visible: opacity > 0
+                z: 20
+            }
+
+            SequentialAnimation on antiBurnOverlayOpacity {
+                running: homeRoot.antiBurnEnabled
+                loops: Animation.Infinite
+                NumberAnimation {
+                    to: 0.055
+                    duration: 85000
+                    easing.type: Easing.InOutSine
+                }
+                NumberAnimation {
+                    to: 0.018
+                    duration: 85000
+                    easing.type: Easing.InOutSine
                 }
             }
         }
