@@ -19,6 +19,103 @@ Window {
         "Used", "Total", "Available", "Free",
         "Cached", "Buffers", "Swap Used", "Swap Free", "Swap Total"
     ]
+    property bool idleProtectionEnabled: true
+    property int idleDimAfterSec: 180
+    property int idleBlackAfterSec: 600
+    property int idlePulseEverySec: 3600
+    property int idlePulseDurationSec: 20
+    property int idleDimBrightnessPercent: 55
+    property int idlePulseBrightnessPercent: 35
+    property int idleSeconds: 0
+    // 0=active, 1=dim, 2=black, 3=pulse
+    property int idleDisplayState: 0
+    property int idleUserBrightness: 50
+    property double idleNextPulseMs: 0
+
+    function clampBrightness(value) {
+        return Math.max(0, Math.min(100, Math.round(value)))
+    }
+
+    function setBrightnessSafely(value) {
+        if (!backend)
+            return
+        var target = clampBrightness(value)
+        if (backend.brightness !== target)
+            backend.brightness = target
+    }
+
+    function rememberInteractiveBrightness() {
+        if (!backend)
+            return
+        if (idleDisplayState === 0)
+            idleUserBrightness = clampBrightness(backend.brightness)
+    }
+
+    function setIdleDisplayState(newState) {
+        if (!backend || idleDisplayState === newState)
+            return
+
+        if (newState === 0) {
+            setBrightnessSafely(idleUserBrightness)
+            idlePulseTimer.stop()
+        } else if (newState === 1) {
+            setBrightnessSafely(Math.min(idleUserBrightness, idleDimBrightnessPercent))
+        } else if (newState === 2) {
+            setBrightnessSafely(0)
+        } else if (newState === 3) {
+            setBrightnessSafely(Math.max(5, Math.min(idleUserBrightness, idlePulseBrightnessPercent)))
+        }
+
+        idleDisplayState = newState
+    }
+
+    function registerUserActivity() {
+        idleSeconds = 0
+        idleNextPulseMs = 0
+        if (idleDisplayState !== 0)
+            setIdleDisplayState(0)
+        else
+            rememberInteractiveBrightness()
+    }
+
+    function refreshIdleState() {
+        if (!idleProtectionEnabled || !backend || !backend.isScreenOn)
+            return
+
+        idleSeconds += 1
+
+        if (idleDisplayState === 0 && idleSeconds >= idleDimAfterSec)
+            setIdleDisplayState(1)
+
+        if ((idleDisplayState === 0 || idleDisplayState === 1) && idleSeconds >= idleBlackAfterSec) {
+            setIdleDisplayState(2)
+            if (idlePulseEverySec > 0 && idlePulseDurationSec > 0)
+                idleNextPulseMs = Date.now() + idlePulseEverySec * 1000
+        }
+
+        if (idleDisplayState === 2 && idlePulseEverySec > 0 && idlePulseDurationSec > 0
+                && idleNextPulseMs > 0 && Date.now() >= idleNextPulseMs) {
+            setIdleDisplayState(3)
+            idlePulseTimer.interval = idlePulseDurationSec * 1000
+            idlePulseTimer.restart()
+        }
+    }
+
+    onIdleProtectionEnabledChanged: {
+        if (idleProtectionEnabled) {
+            registerUserActivity()
+        } else {
+            idleSeconds = 0
+            idleNextPulseMs = 0
+            idlePulseTimer.stop()
+            setIdleDisplayState(0)
+        }
+    }
+
+    Component.onCompleted: {
+        if (backend)
+            idleUserBrightness = clampBrightness(backend.brightness)
+    }
 
     function remoteServerAt(index) {
         if (!backend || !backend.remoteServers || index < 0 || index >= backend.remoteServers.length)
@@ -132,7 +229,41 @@ Window {
         target: backend
 
         function onScreenshotRequested() {
+            window.registerUserActivity()
             window.captureScreenshot()
+        }
+
+        function onVolumeKeyEvent(key, value) {
+            if (value === 1)
+                window.registerUserActivity()
+        }
+
+        function onBrightnessChanged() {
+            window.rememberInteractiveBrightness()
+        }
+
+        function onScreenStateChanged() {
+            if (backend && backend.isScreenOn)
+                window.registerUserActivity()
+        }
+    }
+
+    Timer {
+        id: idleTickTimer
+        interval: 1000
+        repeat: true
+        running: window.visible && window.idleProtectionEnabled
+        onTriggered: window.refreshIdleState()
+    }
+
+    Timer {
+        id: idlePulseTimer
+        repeat: false
+        onTriggered: {
+            if (window.idleDisplayState === 3 && window.idleProtectionEnabled) {
+                window.setIdleDisplayState(2)
+                window.idleNextPulseMs = Date.now() + window.idlePulseEverySec * 1000
+            }
         }
     }
 
@@ -1504,6 +1635,44 @@ Window {
         }
     }
 
+    // 透明捕获层：记录用户交互并重置空闲计时，不拦截正常点击
+    MouseArea {
+        anchors.fill: parent
+        z: 1500
+        acceptedButtons: Qt.AllButtons
+        hoverEnabled: false
+        propagateComposedEvents: true
+        enabled: window.idleProtectionEnabled && window.idleDisplayState !== 2
+
+        onPressed: function(mouse) {
+            window.registerUserActivity()
+            mouse.accepted = false
+        }
+
+        onWheel: function(wheel) {
+            window.registerUserActivity()
+            wheel.accepted = false
+        }
+    }
+
+    Rectangle {
+        id: idleBlackOverlay
+        anchors.fill: parent
+        z: 2500
+        color: "#000000"
+        visible: window.idleDisplayState === 2
+        opacity: visible ? 1 : 0
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onPressed: function(mouse) {
+                mouse.accepted = true
+                window.registerUserActivity()
+            }
+        }
+    }
+
     Rectangle {
         id: screenshotToast
         z: 2000
@@ -1549,7 +1718,7 @@ Window {
             property int metricsHeight: Math.round(window.height * 0.25)
             property int metricsBottomRowHeight: 52
             property int metricsTopRowHeight: Math.max(84, metricsHeight - metricsBottomRowHeight - 8)
-            property bool antiBurnEnabled: true
+            property bool antiBurnEnabled: window.idleDisplayState !== 2
             property int antiBurnOffsetX: 0
             property int antiBurnStepIndex: -1
             property real antiBurnOverlayOpacity: 0.02
