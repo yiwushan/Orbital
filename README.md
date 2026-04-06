@@ -137,7 +137,10 @@ cd build
 
 说明：
 - 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。
-- 轮询周期建议 `60~180` 秒；默认 `120` 秒更省电稳妥。
+- 默认远端轮询周期是 `60` 秒（可通过 `ORBITAL_REMOTE_INTERVAL_SEC` 或 `--remote-interval-sec` 调整）。
+- 用户点击远端卡片后会进入临时加速刷新：`5` 秒/次，持续 `60` 秒，然后自动恢复到基础周期。
+- 远端历史图使用散点并按真实时间戳绘制（`5s` 与 `60s` 采样在同一时间轴上间距不同）。
+- 远端历史窗口为最近 `1` 小时。
 
 ---
 
@@ -155,6 +158,10 @@ cd build
 为保证每次更新可追踪、可回滚、可复现，后续所有更新与推送请严格遵循：
 
 - [`docs/UPDATE_DEPLOY_SOP.md`](docs/UPDATE_DEPLOY_SOP.md)
+
+## 版本发布
+
+- [`docs/RELEASE_V1.md`](docs/RELEASE_V1.md)
 
 ## 贡献
 

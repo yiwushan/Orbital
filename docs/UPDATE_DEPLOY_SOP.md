@@ -57,7 +57,9 @@ git push origin master
 git switch -c feat/<feature-name>
 # 开发与修改
 cmake -B build
-cmake --build build -j$(nproc)
+JOBS=$(( $(nproc) / 2 ))
+[ "$JOBS" -lt 1 ] && JOBS=1
+cmake --build build -j"$JOBS"
 ```
 
 提交前必须满足：
@@ -103,7 +105,9 @@ git pull --ff-only origin master
 
 ```bash
 cmake -S /home/athbe/Orbital -B /home/athbe/Orbital/build -DCMAKE_BUILD_TYPE=Release
-cmake --build /home/athbe/Orbital/build -j$(nproc)
+JOBS=$(( $(nproc) / 2 ))
+[ "$JOBS" -lt 1 ] && JOBS=1
+cmake --build /home/athbe/Orbital/build -j"$JOBS"
 ```
 
 ### 4.4 重启服务并验活
@@ -140,7 +144,9 @@ git log --oneline -n 20
 # 选择一个可用旧版本 <GOOD_COMMIT>
 git checkout <GOOD_COMMIT>
 cmake -S /home/athbe/Orbital -B /home/athbe/Orbital/build -DCMAKE_BUILD_TYPE=Release
-cmake --build /home/athbe/Orbital/build -j$(nproc)
+JOBS=$(( $(nproc) / 2 ))
+[ "$JOBS" -lt 1 ] && JOBS=1
+cmake --build /home/athbe/Orbital/build -j"$JOBS"
 sudo systemctl restart orbital.service
 ```
 
