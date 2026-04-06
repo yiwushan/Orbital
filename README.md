@@ -111,6 +111,11 @@ cd build
 | `--power-key-path <路径>` | 电源键 evdev 设备路径 | `/dev/input/event0` |
 | `--volume-key-path <路径>` | 音量键 evdev 设备路径 | `/dev/input/event3` |
 | `--screenshot-dir <路径>` | 截图保存目录 | 空（默认 `~/Pictures/Orbital/Screenshots`） |
+| `--remote-host-1 <user@host>` | 远端服务器1（SSH） | 空 |
+| `--remote-host-2 <user@host>` | 远端服务器2（SSH） | 空 |
+| `--remote-name-1 <名称>` | 远端服务器1显示名 | 空（默认 `Remote-A`） |
+| `--remote-name-2 <名称>` | 远端服务器2显示名 | 空（默认 `Remote-B`） |
+| `--remote-interval-sec <秒>` | 远端轮询周期 | `120` |
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
