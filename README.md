@@ -126,6 +126,8 @@ cd build
 | `--person-wake-enabled <0|1>` | 人在场检测唤醒开关 | `1` |
 | `--person-wake-device <路径>` | 人在场检测摄像头设备 | `/dev/video0` |
 | `--person-wake-cooldown-sec <秒>` | 两次自动唤醒最小间隔 | `20` |
+| `--person-wake-libcamera-index <数字>` | fallback 模式的 libcamera 相机索引 | `1` |
+| `--person-wake-motion-threshold <值>` | fallback 模式的运动检测阈值 | `12.0` |
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
@@ -145,6 +147,8 @@ cd build
 | `ORBITAL_PERSON_WAKE_ENABLED` | 人在场检测唤醒开关 | `1` |
 | `ORBITAL_PERSON_WAKE_DEVICE` | 人在场检测摄像头设备 | `/dev/video0` |
 | `ORBITAL_PERSON_WAKE_COOLDOWN_SEC` | 自动唤醒冷却时间（秒） | `20` |
+| `ORBITAL_PERSON_WAKE_LIBCAMERA_INDEX` | fallback 模式的 libcamera 相机索引 | `1` |
+| `ORBITAL_PERSON_WAKE_MOTION_THRESHOLD` | fallback 模式的运动检测阈值 | `12.0` |
 
 说明：
 - 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。
@@ -152,7 +156,7 @@ cd build
 - 用户点击远端卡片后会进入临时加速刷新：`5` 秒/次，持续 `60` 秒，然后自动恢复到基础周期。
 - 远端历史图使用散点并按真实时间戳绘制（`5s` 与 `60s` 采样在同一时间轴上间距不同）。
 - 远端历史窗口为最近 `1` 小时。
-- 在场唤醒基于 `python3-opencv` 的轻量人脸检测脚本；若依赖缺失会自动降级为不触发，不影响主程序运行。
+- 在场唤醒优先使用 OpenCV 人脸检测；若 `/dev/video*` 无法直接读取，会自动切换到 `cam` 原始帧运动检测 fallback。
 
 ---
 

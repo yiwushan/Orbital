@@ -16,6 +16,10 @@ constexpr int kDefaultRequiredHits = 2;
 constexpr int kMinCooldownSec = 5;
 constexpr int kMaxCooldownSec = 600;
 constexpr int kRestartDelayMs = 3000;
+constexpr int kMinLibcameraIndex = 1;
+constexpr int kMaxLibcameraIndex = 8;
+constexpr double kMinMotionThreshold = 1.0;
+constexpr double kMaxMotionThreshold = 80.0;
 
 int parseIntBounded(const QString &text, int fallback, int minValue, int maxValue)
 {
@@ -26,6 +30,23 @@ int parseIntBounded(const QString &text, int fallback, int minValue, int maxValu
     }
 
     return std::clamp(value, minValue, maxValue);
+}
+
+double parseDoubleBounded(const QString &text, double fallback, double minValue, double maxValue)
+{
+    bool ok = false;
+    const double value = text.toDouble(&ok);
+    if (!ok) {
+        return fallback;
+    }
+
+    if (value < minValue) {
+        return minValue;
+    }
+    if (value > maxValue) {
+        return maxValue;
+    }
+    return value;
 }
 
 } // namespace
@@ -43,6 +64,10 @@ PresenceDetectorBackend::PresenceDetectorBackend(QObject *parent)
 
     m_cooldownSec = parseIntBounded(Backend::readEnvironmentValue("ORBITAL_PERSON_WAKE_COOLDOWN_SEC"),
                                     m_cooldownSec, kMinCooldownSec, kMaxCooldownSec);
+    m_libcameraIndex = parseIntBounded(Backend::readEnvironmentValue("ORBITAL_PERSON_WAKE_LIBCAMERA_INDEX"),
+                                       m_libcameraIndex, kMinLibcameraIndex, kMaxLibcameraIndex);
+    m_motionThreshold = parseDoubleBounded(Backend::readEnvironmentValue("ORBITAL_PERSON_WAKE_MOTION_THRESHOLD"),
+                                           m_motionThreshold, kMinMotionThreshold, kMaxMotionThreshold);
 
     m_restartTimer->setSingleShot(true);
     connect(m_restartTimer, &QTimer::timeout, this, [this]() {
@@ -172,7 +197,9 @@ void PresenceDetectorBackend::startProcess()
         scriptPath,
         QStringLiteral("--device"), m_device,
         QStringLiteral("--sample-ms"), QString::number(kDefaultSampleMs),
-        QStringLiteral("--required-hits"), QString::number(kDefaultRequiredHits)
+        QStringLiteral("--required-hits"), QString::number(kDefaultRequiredHits),
+        QStringLiteral("--libcamera-index"), QString::number(m_libcameraIndex),
+        QStringLiteral("--motion-threshold"), QString::number(m_motionThreshold, 'f', 1)
     });
     proc->setProcessChannelMode(QProcess::SeparateChannels);
 
@@ -333,4 +360,3 @@ bool PresenceDetectorBackend::parseBoolEnv(const QString &value, bool fallback) 
 
     return fallback;
 }
-

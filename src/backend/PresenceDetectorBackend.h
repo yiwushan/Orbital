@@ -58,6 +58,7 @@ private:
     QString m_status = QStringLiteral("Initializing");
     QString m_device = QStringLiteral("/dev/video0");
     int m_cooldownSec = 20;
+    int m_libcameraIndex = 1;
+    double m_motionThreshold = 12.0;
     QDateTime m_lastDetectionAt;
 };
-

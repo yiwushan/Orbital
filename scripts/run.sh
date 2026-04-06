@@ -26,6 +26,8 @@ REMOTE_INTERVAL_SEC="${ORBITAL_REMOTE_INTERVAL_SEC:-60}"
 PERSON_WAKE_ENABLED="${ORBITAL_PERSON_WAKE_ENABLED:-1}"
 PERSON_WAKE_DEVICE="${ORBITAL_PERSON_WAKE_DEVICE:-/dev/video0}"
 PERSON_WAKE_COOLDOWN_SEC="${ORBITAL_PERSON_WAKE_COOLDOWN_SEC:-20}"
+PERSON_WAKE_LIBCAMERA_INDEX="${ORBITAL_PERSON_WAKE_LIBCAMERA_INDEX:-1}"
+PERSON_WAKE_MOTION_THRESHOLD="${ORBITAL_PERSON_WAKE_MOTION_THRESHOLD:-12.0}"
 VOLUME_KEY_PATH_EXPLICIT=0
 
 if [[ -n "${ORBITAL_VOLUME_KEY_PATH:-}" ]]; then
@@ -53,6 +55,8 @@ Options:
   --person-wake-enabled <0|1>    Enable person detection wake-up.
   --person-wake-device <path>    Set camera device path for wake-up detector.
   --person-wake-cooldown-sec <s> Set minimum wake event interval in seconds.
+  --person-wake-libcamera-index <n>  Camera index for libcamera fallback mode.
+  --person-wake-motion-threshold <v> Motion score threshold in fallback mode.
   -h, --help                     Show this help message.
 EOF
 }
@@ -237,6 +241,26 @@ while [[ $# -gt 0 ]]; do
             require_value "--person-wake-cooldown-sec" "$PERSON_WAKE_COOLDOWN_SEC"
             shift
             ;;
+        --person-wake-libcamera-index)
+            require_value "$1" "$2"
+            PERSON_WAKE_LIBCAMERA_INDEX="$2"
+            shift 2
+            ;;
+        --person-wake-libcamera-index=*)
+            PERSON_WAKE_LIBCAMERA_INDEX="${1#*=}"
+            require_value "--person-wake-libcamera-index" "$PERSON_WAKE_LIBCAMERA_INDEX"
+            shift
+            ;;
+        --person-wake-motion-threshold)
+            require_value "$1" "$2"
+            PERSON_WAKE_MOTION_THRESHOLD="$2"
+            shift 2
+            ;;
+        --person-wake-motion-threshold=*)
+            PERSON_WAKE_MOTION_THRESHOLD="${1#*=}"
+            require_value "--person-wake-motion-threshold" "$PERSON_WAKE_MOTION_THRESHOLD"
+            shift
+            ;;
         -h|--help)
             print_usage
             exit 0
@@ -266,6 +290,8 @@ export ORBITAL_REMOTE_INTERVAL_SEC="$REMOTE_INTERVAL_SEC"
 export ORBITAL_PERSON_WAKE_ENABLED="$PERSON_WAKE_ENABLED"
 export ORBITAL_PERSON_WAKE_DEVICE="$PERSON_WAKE_DEVICE"
 export ORBITAL_PERSON_WAKE_COOLDOWN_SEC="$PERSON_WAKE_COOLDOWN_SEC"
+export ORBITAL_PERSON_WAKE_LIBCAMERA_INDEX="$PERSON_WAKE_LIBCAMERA_INDEX"
+export ORBITAL_PERSON_WAKE_MOTION_THRESHOLD="$PERSON_WAKE_MOTION_THRESHOLD"
 export QT_QPA_GENERIC_PLUGINS="evdevtouch:${ORBITAL_TOUCH_INPUT_PATH}"
 RESTART_EXIT_CODE=42
 while true; do
