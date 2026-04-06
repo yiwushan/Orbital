@@ -114,6 +114,22 @@ cd build
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
+### 远端服务器监控（可选）
+
+可通过环境变量接入 2 台内网服务器（SSH 免密），在 Dashboard 下方显示远端 CPU/MEM/DISK/Load 概览，并把远端 CPU 核心按 8 组均值展示：
+
+| 环境变量 | 说明 | 默认值 |
+|------|------|--------|
+| `ORBITAL_REMOTE_HOST_1` | 远端1（例如 `user@10.0.0.11`） | 空 |
+| `ORBITAL_REMOTE_HOST_2` | 远端2（例如 `user@10.0.0.12`） | 空 |
+| `ORBITAL_REMOTE_NAME_1` | 远端1显示名称 | `Remote-A` |
+| `ORBITAL_REMOTE_NAME_2` | 远端2显示名称 | `Remote-B` |
+| `ORBITAL_REMOTE_INTERVAL_SEC` | 远端轮询周期（秒） | `120` |
+
+说明：
+- 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。
+- 轮询周期建议 `60~180` 秒；默认 `120` 秒更省电稳妥。
+
 ---
 
 ## 移植说明

@@ -66,6 +66,8 @@ qt_add_executable(appOrbital
     src/backend/DisplayBackend.cpp
     src/backend/LedBackend.h
     src/backend/LedBackend.cpp
+    src/backend/RemoteServersBackend.h
+    src/backend/RemoteServersBackend.cpp
     src/backend/SystemDetailsBackend.h
     src/backend/SystemDetailsBackend.cpp
     src/backend/WifiBackend.h

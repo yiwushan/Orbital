@@ -7,6 +7,7 @@
 class QTimer;
 class DisplayBackend;
 class LedBackend;
+class RemoteServersBackend;
 class SystemDetailsBackend;
 class SystemStatsBackend;
 class WifiBackend;
@@ -39,6 +40,7 @@ class SystemMonitor : public QObject
     Q_PROPERTY(QVariantList wifiList READ wifiList NOTIFY wifiListChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled WRITE setWifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(QVariantMap currentWifiDetails READ currentWifiDetails NOTIFY currentWifiDetailsChanged)
+    Q_PROPERTY(QVariantList remoteServers READ remoteServers NOTIFY remoteServersChanged)
     Q_PROPERTY(QString osVersion READ osVersion CONSTANT)
     Q_PROPERTY(QString kernelVersion READ kernelVersion CONSTANT)
     Q_PROPERTY(QObject* ledBackend READ ledBackend CONSTANT)
@@ -72,6 +74,7 @@ public:
     QVariantList wifiList() const;
     bool wifiEnabled() const;
     QVariantMap currentWifiDetails() const;
+    QVariantList remoteServers() const;
     QString osVersion() const;
     QString kernelVersion() const;
     QObject *ledBackend() const;
@@ -95,6 +98,7 @@ signals:
     void wifiListChanged();
     void wifiEnabledChanged();
     void currentWifiDetailsChanged();
+    void remoteServersChanged();
     void wifiOperationResult(QString operation, bool success, QString message);
     void volumeKeyEvent(QString key, int value);
     void screenshotRequested();
@@ -107,6 +111,7 @@ private:
     DisplayBackend *m_displayBackend = nullptr;
     LedBackend *m_ledBackend = nullptr;
     SystemDetailsBackend *m_systemDetailsBackend = nullptr;
+    RemoteServersBackend *m_remoteServersBackend = nullptr;
     WifiBackend *m_wifiBackend = nullptr;
     QTimer *m_timer = nullptr;
 };

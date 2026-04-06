@@ -2,6 +2,7 @@
 
 #include "backend/DisplayBackend.h"
 #include "backend/LedBackend.h"
+#include "backend/RemoteServersBackend.h"
 #include "backend/SystemDetailsBackend.h"
 #include "backend/SystemHelpers.h"
 #include "backend/SystemStatsBackend.h"
@@ -16,6 +17,7 @@ SystemMonitor::SystemMonitor(QObject *parent)
     , m_displayBackend(new DisplayBackend(this))
     , m_ledBackend(new LedBackend(this))
     , m_systemDetailsBackend(new SystemDetailsBackend(this))
+    , m_remoteServersBackend(new RemoteServersBackend(this))
     , m_wifiBackend(new WifiBackend(this))
     , m_timer(new QTimer(this))
 {
@@ -41,6 +43,8 @@ SystemMonitor::SystemMonitor(QObject *parent)
             this, &SystemMonitor::currentWifiDetailsChanged);
     connect(m_wifiBackend, &WifiBackend::wifiOperationResult,
             this, &SystemMonitor::wifiOperationResult);
+    connect(m_remoteServersBackend, &RemoteServersBackend::dataChanged,
+            this, &SystemMonitor::remoteServersChanged);
 
     connect(m_timer, &QTimer::timeout, this, &SystemMonitor::refreshStats);
     m_timer->start(1000);
@@ -170,6 +174,11 @@ bool SystemMonitor::wifiEnabled() const
 QVariantMap SystemMonitor::currentWifiDetails() const
 {
     return m_wifiBackend->currentWifiDetails();
+}
+
+QVariantList SystemMonitor::remoteServers() const
+{
+    return m_remoteServersBackend ? m_remoteServersBackend->servers() : QVariantList{};
 }
 
 QString SystemMonitor::osVersion() const

@@ -1443,6 +1443,162 @@ Window {
                     }
                 }
 
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Repeater {
+                        model: backend.remoteServers
+
+                        Rectangle {
+                            required property var modelData
+                            property var serverData: modelData
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 126
+                            radius: 12
+                            color: "#1a1f29"
+                            border.width: 1
+                            border.color: "#2c3038"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 5
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    Text {
+                                        text: serverData.name || "Remote"
+                                        color: "white"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    Rectangle {
+                                        radius: 6
+                                        width: 56
+                                        height: 16
+                                        color: serverData.status === "Online"
+                                               ? "#1f6f4f"
+                                               : (serverData.status === "Updating" ? "#6d571f" : "#6f1f2f")
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: serverData.status || "--"
+                                            color: "#f2f4f8"
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Text {
+                                        text: (serverData.host || "--") + "  @" + (serverData.lastUpdate || "--")
+                                        color: "#9db0c3"
+                                        font.pixelSize: 10
+                                        elide: Text.ElideLeft
+                                        Layout.maximumWidth: 170
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Text {
+                                        text: "CPU " + (Number(serverData.cpuTotal || 0) * 100).toFixed(0) + "% · " + (serverData.coreCount || 0) + "C"
+                                        color: cpuColor(Number(serverData.cpuTotal || 0))
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Text {
+                                        text: "MEM " + (Number(serverData.memPercent || 0) * 100).toFixed(0) + "%"
+                                        color: "#7EC8FF"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                    }
+
+                                    Text {
+                                        text: "DISK " + (Number(serverData.diskPercent || 0) * 100).toFixed(0) + "%"
+                                        color: "#8BE09A"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                    }
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: "MEM " + (serverData.memDetail || "--")
+                                          + "   DISK " + (serverData.diskDetail || "--")
+                                          + "   LOAD " + (serverData.loadAvg || "--")
+                                    color: "#a9b7c8"
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                }
+
+                                Row {
+                                    id: remoteGroupRow
+                                    property var groups: serverData.cpuGroups || []
+                                    spacing: 2
+
+                                    Repeater {
+                                        model: 8
+
+                                        Rectangle {
+                                            required property int index
+                                            property real groupLoad: (remoteGroupRow.groups && index < remoteGroupRow.groups.length)
+                                                                     ? Number(remoteGroupRow.groups[index]) : 0
+
+                                            width: 38
+                                            height: 30
+                                            radius: 4
+                                            color: "#202634"
+                                            border.width: 1
+                                            border.color: "#343b48"
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.bottom: parent.bottom
+                                                anchors.margins: 1
+                                                height: Math.max(0, (parent.height - 2) * parent.groupLoad)
+                                                radius: 3
+                                                color: cpuColor(parent.groupLoad)
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: Math.round(parent.groupLoad * 100)
+                                                color: "#e7ebf0"
+                                                font.pixelSize: 8
+                                                font.bold: true
+                                                font.family: "Monospace"
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    visible: (serverData.error || "") !== ""
+                                    Layout.fillWidth: true
+                                    text: serverData.error
+                                    color: "#c88f8f"
+                                    font.pixelSize: 9
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
