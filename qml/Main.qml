@@ -775,7 +775,6 @@ Window {
         id: homePage
         Item {
             id: homeRoot
-            property int safeTopInset: Math.round(Math.max(24, window.height * 0.045))
             property int contentPadding: 12
             property real metricsPanelHeight: Math.round(Math.max(170, height * 0.25))
 
@@ -792,11 +791,6 @@ Window {
                 anchors.topMargin: homeRoot.contentPadding
                 anchors.bottomMargin: homeRoot.contentPadding
                 spacing: 10
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: homeRoot.safeTopInset
-                }
 
                 Rectangle {
                     id: metricsPanel
@@ -823,7 +817,7 @@ Window {
                                 text: "Dashboard"
                                 color: "white"
                                 font.bold: true
-                                font.pixelSize: 30
+                                font.pixelSize: 24
                             }
 
                             Row {
