@@ -15,7 +15,7 @@ namespace {
 
 constexpr int kHostCount = 2;
 constexpr int kCpuGroupCount = 8;
-constexpr int kHistoryLimit = 90;
+constexpr int kHistoryLimit = 240;
 
 QString formatGbFromKb(qint64 valueKb)
 {

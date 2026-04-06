@@ -9,6 +9,12 @@ Item {
     property double fixedMax: -1   
     property string suffix: ""     
     property bool showLegend: true 
+    property bool showLine: true
+    property bool showPoints: false
+    property bool fillArea: true
+    property int pointRadius: 2
+    property bool compact: false
+    property bool showScaleLabels: true
 
     property double _currentMaxY: 100 
 
@@ -59,8 +65,8 @@ Item {
             Canvas {
                 id: canvas
                 anchors.fill: parent
-                anchors.topMargin: 38 
-                anchors.bottomMargin: 14
+                anchors.topMargin: root.compact ? 20 : 38
+                anchors.bottomMargin: root.compact ? 6 : 14
                 
                 renderTarget: Canvas.Image
                 renderStrategy: Canvas.Threaded
@@ -96,36 +102,52 @@ Item {
                         var data = series.values;
                         var color = series.color;
 
-                        if (!data || data.length < 2) continue;
+                        if (!data || data.length < 1) continue;
 
-                        var stepX = w / (data.length - 1);
+                        var stepX = data.length > 1 ? w / (data.length - 1) : 0;
+                        function xOf(i) { return data.length > 1 ? i * stepX : w * 0.5; }
 
-                        // 填充
-                        ctx.save(); 
-                        ctx.beginPath();
-                        ctx.moveTo(0, getY(data[0]));
-                        for (var i = 1; i < data.length; i++) {
-                            ctx.lineTo(i * stepX, getY(data[i]));
+                        if (root.showLine && root.fillArea && data.length >= 2) {
+                            // 填充
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.moveTo(xOf(0), getY(data[0]));
+                            for (var i = 1; i < data.length; i++) {
+                                ctx.lineTo(xOf(i), getY(data[i]));
+                            }
+                            ctx.lineTo(xOf(data.length - 1), h);
+                            ctx.lineTo(xOf(0), h);
+                            ctx.closePath();
+                            ctx.globalAlpha = 0.2;
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                            ctx.restore();
                         }
-                        ctx.lineTo((data.length - 1) * stepX, h);
-                        ctx.lineTo(0, h);
-                        ctx.closePath();
-                        ctx.globalAlpha = 0.2; 
-                        ctx.fillStyle = color;
-                        ctx.fill();
-                        ctx.restore();
 
-                        // 描边
-                        ctx.beginPath();
-                        ctx.moveTo(0, getY(data[0]));
-                        for (var i = 1; i < data.length; i++) {
-                            ctx.lineTo(i * stepX, getY(data[i]));
+                        if (root.showLine && data.length >= 2) {
+                            // 描边
+                            ctx.beginPath();
+                            ctx.moveTo(xOf(0), getY(data[0]));
+                            for (var i = 1; i < data.length; i++) {
+                                ctx.lineTo(xOf(i), getY(data[i]));
+                            }
+                            ctx.lineJoin = "round";
+                            ctx.lineCap = "round";
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
                         }
-                        ctx.lineJoin = "round";
-                        ctx.lineCap = "round";
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
+
+                        if (root.showPoints) {
+                            ctx.save();
+                            ctx.fillStyle = color;
+                            for (var i = 0; i < data.length; i++) {
+                                ctx.beginPath();
+                                ctx.arc(xOf(i), getY(data[i]), Math.max(1, root.pointRadius), 0, Math.PI * 2, false);
+                                ctx.fill();
+                            }
+                            ctx.restore();
+                        }
                     }
                 }
             }
@@ -137,7 +159,7 @@ Item {
                 anchors.top: parent.top
                 text: root.chartTitle
                 color: "#dddddd"
-                font.pixelSize: 12
+                font.pixelSize: root.compact ? 10 : 12
                 font.bold: true
             }
 
@@ -148,6 +170,7 @@ Item {
                 text: "Max: " + (root.fixedMax > 0 ? root.fixedMax : root._currentMaxY.toFixed(1)) + root.suffix
                 color: "#666666"
                 font.pixelSize: 10
+                visible: root.showScaleLabels
             }
             
             Text {
@@ -156,6 +179,7 @@ Item {
                 text: "0"
                 color: "#666666"
                 font.pixelSize: 10
+                visible: root.showScaleLabels
             }
         }
 

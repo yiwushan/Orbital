@@ -904,9 +904,13 @@ Window {
                         color: "#FF5252"
                     }
                 ]
-                fixedMax: 100
+                fixedMax: -1
                 suffix: "%"
                 showLegend: false
+                showLine: false
+                showPoints: true
+                fillArea: false
+                pointRadius: 2
             }
 
             Item { height: 8; Layout.fillWidth: true }
@@ -981,9 +985,13 @@ Window {
                         color: "#2196F3"
                     }
                 ]
-                fixedMax: 100
+                fixedMax: -1
                 suffix: "%"
                 showLegend: false
+                showLine: false
+                showPoints: true
+                fillArea: false
+                pointRadius: 2
             }
 
             Rectangle {
@@ -1113,9 +1121,13 @@ Window {
                         color: "#00E5FF"
                     }
                 ]
-                fixedMax: 100
+                fixedMax: -1
                 suffix: "%"
                 showLegend: false
+                showLine: false
+                showPoints: true
+                fillArea: false
+                pointRadius: 2
             }
 
             ListView {
@@ -1900,8 +1912,10 @@ Window {
                         model: backend.remoteServers
 
                         Rectangle {
+                            id: remoteServerCard
                             required property var modelData
                             property var serverData: modelData
+                            property int serverIndex: index
 
                             Layout.fillWidth: true
                             Layout.preferredHeight: 212
@@ -1965,7 +1979,7 @@ Window {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         radius: 10
-                                        color: remoteCpuTap.pressed ? "#2a303a" : "#1a1d23"
+                                        color: remoteCpuClick.pressed ? "#2a303a" : "#1a1d23"
                                         border.color: "#2f3744"
                                         border.width: 1
 
@@ -2044,16 +2058,24 @@ Window {
                                                 datasets: [
                                                     { label: "CPU", values: serverData.cpuHistory || [], color: "#FF5252" }
                                                 ]
-                                                fixedMax: 100
+                                                fixedMax: -1
                                                 suffix: "%"
                                                 showLegend: false
+                                                showLine: false
+                                                showPoints: true
+                                                fillArea: false
+                                                pointRadius: 2
+                                                compact: true
+                                                showScaleLabels: false
                                             }
                                         }
 
-                                        TapHandler {
-                                            id: remoteCpuTap
-                                            onTapped: {
-                                                remoteCpuPopup.serverIndex = index
+                                        MouseArea {
+                                            id: remoteCpuClick
+                                            anchors.fill: parent
+                                            z: 5
+                                            onClicked: {
+                                                remoteCpuPopup.serverIndex = remoteServerCard.serverIndex
                                                 remoteCpuPopup.open()
                                             }
                                         }
@@ -2063,7 +2085,7 @@ Window {
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         radius: 10
-                                        color: remoteMemTap.pressed ? "#2a303a" : "#1a1d23"
+                                        color: remoteMemClick.pressed ? "#2a303a" : "#1a1d23"
                                         border.color: "#2f3744"
                                         border.width: 1
 
@@ -2107,16 +2129,24 @@ Window {
                                                 datasets: [
                                                     { label: "MEM", values: serverData.memHistory || [], color: "#2196F3" }
                                                 ]
-                                                fixedMax: 100
+                                                fixedMax: -1
                                                 suffix: "%"
                                                 showLegend: false
+                                                showLine: false
+                                                showPoints: true
+                                                fillArea: false
+                                                pointRadius: 2
+                                                compact: true
+                                                showScaleLabels: false
                                             }
                                         }
 
-                                        TapHandler {
-                                            id: remoteMemTap
-                                            onTapped: {
-                                                remoteMemPopup.serverIndex = index
+                                        MouseArea {
+                                            id: remoteMemClick
+                                            anchors.fill: parent
+                                            z: 5
+                                            onClicked: {
+                                                remoteMemPopup.serverIndex = remoteServerCard.serverIndex
                                                 remoteMemPopup.open()
                                             }
                                         }
@@ -2127,7 +2157,7 @@ Window {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 56
                                     radius: 10
-                                    color: remoteDiskTap.pressed ? "#2a303a" : "#202736"
+                                    color: remoteDiskClick.pressed ? "#2a303a" : "#202736"
                                     border.color: "#2f3744"
                                     border.width: 1
 
@@ -2168,16 +2198,24 @@ Window {
                                             datasets: [
                                                 { label: "DISK", values: serverData.diskHistory || [], color: "#00E5FF" }
                                             ]
-                                            fixedMax: 100
+                                            fixedMax: -1
                                             suffix: "%"
                                             showLegend: false
+                                            showLine: false
+                                            showPoints: true
+                                            fillArea: false
+                                            pointRadius: 2
+                                            compact: true
+                                            showScaleLabels: false
                                         }
                                     }
 
-                                    TapHandler {
-                                        id: remoteDiskTap
-                                        onTapped: {
-                                            remoteDiskPopup.serverIndex = index
+                                    MouseArea {
+                                        id: remoteDiskClick
+                                        anchors.fill: parent
+                                        z: 5
+                                        onClicked: {
+                                            remoteDiskPopup.serverIndex = remoteServerCard.serverIndex
                                             remoteDiskPopup.open()
                                         }
                                     }
