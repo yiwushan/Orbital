@@ -7,6 +7,7 @@
 class QTimer;
 class DisplayBackend;
 class LedBackend;
+class PresenceDetectorBackend;
 class RemoteServersBackend;
 class SystemDetailsBackend;
 class SystemStatsBackend;
@@ -41,6 +42,8 @@ class SystemMonitor : public QObject
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled WRITE setWifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(QVariantMap currentWifiDetails READ currentWifiDetails NOTIFY currentWifiDetailsChanged)
     Q_PROPERTY(QVariantList remoteServers READ remoteServers NOTIFY remoteServersChanged)
+    Q_PROPERTY(bool personWakeEnabled READ personWakeEnabled WRITE setPersonWakeEnabled NOTIFY personWakeEnabledChanged)
+    Q_PROPERTY(QString personWakeStatus READ personWakeStatus NOTIFY personWakeStatusChanged)
     Q_PROPERTY(QString osVersion READ osVersion CONSTANT)
     Q_PROPERTY(QString kernelVersion READ kernelVersion CONSTANT)
     Q_PROPERTY(QObject* ledBackend READ ledBackend CONSTANT)
@@ -75,6 +78,8 @@ public:
     bool wifiEnabled() const;
     QVariantMap currentWifiDetails() const;
     QVariantList remoteServers() const;
+    bool personWakeEnabled() const;
+    QString personWakeStatus() const;
     QString osVersion() const;
     QString kernelVersion() const;
     QObject *ledBackend() const;
@@ -82,6 +87,7 @@ public:
 
     void setWifiEnabled(bool enable);
     void setBrightness(int percent);
+    void setPersonWakeEnabled(bool enable);
 
     Q_INVOKABLE void connectToWifi(const QString &ssid, const QString &password);
     Q_INVOKABLE void disconnectFromWifi(const QString &ssid);
@@ -100,6 +106,9 @@ signals:
     void wifiEnabledChanged();
     void currentWifiDetailsChanged();
     void remoteServersChanged();
+    void personWakeEnabledChanged();
+    void personWakeStatusChanged();
+    void personDetected();
     void wifiOperationResult(QString operation, bool success, QString message);
     void volumeKeyEvent(QString key, int value);
     void screenshotRequested();
@@ -113,6 +122,7 @@ private:
     LedBackend *m_ledBackend = nullptr;
     SystemDetailsBackend *m_systemDetailsBackend = nullptr;
     RemoteServersBackend *m_remoteServersBackend = nullptr;
+    PresenceDetectorBackend *m_presenceDetectorBackend = nullptr;
     WifiBackend *m_wifiBackend = nullptr;
     QTimer *m_timer = nullptr;
 };

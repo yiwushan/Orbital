@@ -64,6 +64,8 @@ qt_add_executable(appOrbital
     src/backend/SystemStatsBackend.cpp
     src/backend/DisplayBackend.h
     src/backend/DisplayBackend.cpp
+    src/backend/PresenceDetectorBackend.h
+    src/backend/PresenceDetectorBackend.cpp
     src/backend/LedBackend.h
     src/backend/LedBackend.cpp
     src/backend/RemoteServersBackend.h
@@ -148,3 +150,4 @@ endif()
 
 # 将scripts/run.sh复制到构建目录
 configure_file(${CMAKE_SOURCE_DIR}/scripts/run.sh ${CMAKE_BINARY_DIR}/run.sh COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/scripts/presence_detector.py ${CMAKE_BINARY_DIR}/presence_detector.py COPYONLY)

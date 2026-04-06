@@ -246,6 +246,10 @@ Window {
             if (backend && backend.isScreenOn)
                 window.registerUserActivity()
         }
+
+        function onPersonDetected() {
+            window.registerUserActivity()
+        }
     }
 
     Timer {

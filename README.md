@@ -18,6 +18,7 @@
 - **历史折线图**：CPU、内存、网络 I/O 历史曲线
 - **防烧屏机制**：主界面每 `45s` 进行 `±3px` 水平微位移，并叠加低幅度亮度呼吸（约 `1.8%~5.5%`）
 - **空闲节能防烧屏**：`3` 分钟无操作降亮，`10` 分钟无操作黑屏；黑屏后每 `1` 小时短亮 `20s` 便于状态巡检，触摸/按键可立即唤醒
+- **摄像头在场唤醒（可选）**：启用后使用前置摄像头做人脸检测，检测到人时自动唤醒屏幕
 - **截图**：同时按下音量+ 和音量- 触发，保存到 `--screenshot-dir` 指定目录，未指定时默认保存到 `~/Pictures/Orbital/Screenshots`
 
 ### 设置
@@ -87,11 +88,13 @@ cmake --build build -j$(nproc)
 | 触摸输入 | Linux evdev 驱动，Qt evdev 插件 |
 | 亮度调节 | `/sys/class/backlight/` 节点可写 |
 | LED 控制 | `/sys/class/leds/` 节点可写 |
+| 人在场唤醒（可选） | `python3-opencv`（摄像头检测） |
 
 #### Debian / Ubuntu 运行时包
 ```bash
 sudo apt install libqt6quick6 libqt6qml6 qml6-module-qtquick \
-    qml6-module-qtquick-controls qml6-module-qtquick-layouts network-manager
+    qml6-module-qtquick-controls qml6-module-qtquick-layouts network-manager \
+    python3-opencv
 ```
 
 ---
@@ -120,6 +123,9 @@ cd build
 | `--remote-name-1 <名称>` | 远端服务器1显示名 | 空（默认 `Remote-A`） |
 | `--remote-name-2 <名称>` | 远端服务器2显示名 | 空（默认 `Remote-B`） |
 | `--remote-interval-sec <秒>` | 远端轮询周期 | `60` |
+| `--person-wake-enabled <0|1>` | 人在场检测唤醒开关 | `1` |
+| `--person-wake-device <路径>` | 人在场检测摄像头设备 | `/dev/video0` |
+| `--person-wake-cooldown-sec <秒>` | 两次自动唤醒最小间隔 | `20` |
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
@@ -136,6 +142,9 @@ cd build
 | `ORBITAL_REMOTE_NAME_1` | 远端1显示名称 | `Remote-A` |
 | `ORBITAL_REMOTE_NAME_2` | 远端2显示名称 | `Remote-B` |
 | `ORBITAL_REMOTE_INTERVAL_SEC` | 远端轮询周期（秒） | `60` |
+| `ORBITAL_PERSON_WAKE_ENABLED` | 人在场检测唤醒开关 | `1` |
+| `ORBITAL_PERSON_WAKE_DEVICE` | 人在场检测摄像头设备 | `/dev/video0` |
+| `ORBITAL_PERSON_WAKE_COOLDOWN_SEC` | 自动唤醒冷却时间（秒） | `20` |
 
 说明：
 - 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。
@@ -143,6 +152,7 @@ cd build
 - 用户点击远端卡片后会进入临时加速刷新：`5` 秒/次，持续 `60` 秒，然后自动恢复到基础周期。
 - 远端历史图使用散点并按真实时间戳绘制（`5s` 与 `60s` 采样在同一时间轴上间距不同）。
 - 远端历史窗口为最近 `1` 小时。
+- 在场唤醒基于 `python3-opencv` 的轻量人脸检测脚本；若依赖缺失会自动降级为不触发，不影响主程序运行。
 
 ---
 

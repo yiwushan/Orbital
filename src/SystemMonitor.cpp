@@ -2,6 +2,7 @@
 
 #include "backend/DisplayBackend.h"
 #include "backend/LedBackend.h"
+#include "backend/PresenceDetectorBackend.h"
 #include "backend/RemoteServersBackend.h"
 #include "backend/SystemDetailsBackend.h"
 #include "backend/SystemHelpers.h"
@@ -18,6 +19,7 @@ SystemMonitor::SystemMonitor(QObject *parent)
     , m_ledBackend(new LedBackend(this))
     , m_systemDetailsBackend(new SystemDetailsBackend(this))
     , m_remoteServersBackend(new RemoteServersBackend(this))
+    , m_presenceDetectorBackend(new PresenceDetectorBackend(this))
     , m_wifiBackend(new WifiBackend(this))
     , m_timer(new QTimer(this))
 {
@@ -45,6 +47,12 @@ SystemMonitor::SystemMonitor(QObject *parent)
             this, &SystemMonitor::wifiOperationResult);
     connect(m_remoteServersBackend, &RemoteServersBackend::dataChanged,
             this, &SystemMonitor::remoteServersChanged);
+    connect(m_presenceDetectorBackend, &PresenceDetectorBackend::enabledChanged,
+            this, &SystemMonitor::personWakeEnabledChanged);
+    connect(m_presenceDetectorBackend, &PresenceDetectorBackend::statusChanged,
+            this, &SystemMonitor::personWakeStatusChanged);
+    connect(m_presenceDetectorBackend, &PresenceDetectorBackend::personDetected,
+            this, &SystemMonitor::personDetected);
 
     connect(m_timer, &QTimer::timeout, this, &SystemMonitor::refreshStats);
     m_timer->start(1000);
@@ -181,6 +189,16 @@ QVariantList SystemMonitor::remoteServers() const
     return m_remoteServersBackend ? m_remoteServersBackend->servers() : QVariantList{};
 }
 
+bool SystemMonitor::personWakeEnabled() const
+{
+    return m_presenceDetectorBackend ? m_presenceDetectorBackend->enabled() : false;
+}
+
+QString SystemMonitor::personWakeStatus() const
+{
+    return m_presenceDetectorBackend ? m_presenceDetectorBackend->status() : QStringLiteral("Unavailable");
+}
+
 QString SystemMonitor::osVersion() const
 {
     return Backend::readOsVersion();
@@ -209,6 +227,13 @@ void SystemMonitor::setWifiEnabled(bool enable)
 void SystemMonitor::setBrightness(int percent)
 {
     m_displayBackend->setBrightness(percent);
+}
+
+void SystemMonitor::setPersonWakeEnabled(bool enable)
+{
+    if (m_presenceDetectorBackend) {
+        m_presenceDetectorBackend->setEnabled(enable);
+    }
 }
 
 void SystemMonitor::connectToWifi(const QString &ssid, const QString &password)

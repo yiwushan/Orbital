@@ -23,6 +23,9 @@ REMOTE_PORT_2="${ORBITAL_REMOTE_PORT_2:-22}"
 REMOTE_NAME_1="${ORBITAL_REMOTE_NAME_1:-}"
 REMOTE_NAME_2="${ORBITAL_REMOTE_NAME_2:-}"
 REMOTE_INTERVAL_SEC="${ORBITAL_REMOTE_INTERVAL_SEC:-60}"
+PERSON_WAKE_ENABLED="${ORBITAL_PERSON_WAKE_ENABLED:-1}"
+PERSON_WAKE_DEVICE="${ORBITAL_PERSON_WAKE_DEVICE:-/dev/video0}"
+PERSON_WAKE_COOLDOWN_SEC="${ORBITAL_PERSON_WAKE_COOLDOWN_SEC:-20}"
 VOLUME_KEY_PATH_EXPLICIT=0
 
 if [[ -n "${ORBITAL_VOLUME_KEY_PATH:-}" ]]; then
@@ -47,6 +50,9 @@ Options:
   --remote-name-1 <name>         Set first remote server display name.
   --remote-name-2 <name>         Set second remote server display name.
   --remote-interval-sec <sec>    Set remote polling interval in seconds.
+  --person-wake-enabled <0|1>    Enable person detection wake-up.
+  --person-wake-device <path>    Set camera device path for wake-up detector.
+  --person-wake-cooldown-sec <s> Set minimum wake event interval in seconds.
   -h, --help                     Show this help message.
 EOF
 }
@@ -201,6 +207,36 @@ while [[ $# -gt 0 ]]; do
             require_value "--remote-interval-sec" "$REMOTE_INTERVAL_SEC"
             shift
             ;;
+        --person-wake-enabled)
+            require_value "$1" "$2"
+            PERSON_WAKE_ENABLED="$2"
+            shift 2
+            ;;
+        --person-wake-enabled=*)
+            PERSON_WAKE_ENABLED="${1#*=}"
+            require_value "--person-wake-enabled" "$PERSON_WAKE_ENABLED"
+            shift
+            ;;
+        --person-wake-device)
+            require_value "$1" "$2"
+            PERSON_WAKE_DEVICE="$2"
+            shift 2
+            ;;
+        --person-wake-device=*)
+            PERSON_WAKE_DEVICE="${1#*=}"
+            require_value "--person-wake-device" "$PERSON_WAKE_DEVICE"
+            shift
+            ;;
+        --person-wake-cooldown-sec)
+            require_value "$1" "$2"
+            PERSON_WAKE_COOLDOWN_SEC="$2"
+            shift 2
+            ;;
+        --person-wake-cooldown-sec=*)
+            PERSON_WAKE_COOLDOWN_SEC="${1#*=}"
+            require_value "--person-wake-cooldown-sec" "$PERSON_WAKE_COOLDOWN_SEC"
+            shift
+            ;;
         -h|--help)
             print_usage
             exit 0
@@ -227,6 +263,9 @@ export ORBITAL_REMOTE_PORT_2="$REMOTE_PORT_2"
 export ORBITAL_REMOTE_NAME_1="$REMOTE_NAME_1"
 export ORBITAL_REMOTE_NAME_2="$REMOTE_NAME_2"
 export ORBITAL_REMOTE_INTERVAL_SEC="$REMOTE_INTERVAL_SEC"
+export ORBITAL_PERSON_WAKE_ENABLED="$PERSON_WAKE_ENABLED"
+export ORBITAL_PERSON_WAKE_DEVICE="$PERSON_WAKE_DEVICE"
+export ORBITAL_PERSON_WAKE_COOLDOWN_SEC="$PERSON_WAKE_COOLDOWN_SEC"
 export QT_QPA_GENERIC_PLUGINS="evdevtouch:${ORBITAL_TOUCH_INPUT_PATH}"
 RESTART_EXIT_CODE=42
 while true; do
