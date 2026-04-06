@@ -116,6 +116,13 @@ void RemoteServersBackend::loadConfigFromEnv()
             QStringLiteral("ORBITAL_REMOTE_HOST_%1").arg(slot),
             QStringLiteral("ORBITAL_REMOTE_HOST%1").arg(slot)
         });
+        const QString portText = envValueAny({
+            QStringLiteral("ORBITAL_REMOTE_PORT_%1").arg(slot),
+            QStringLiteral("ORBITAL_REMOTE_PORT%1").arg(slot)
+        });
+        bool okPort = false;
+        const int parsedPort = portText.toInt(&okPort);
+        host.config.port = (okPort && parsedPort > 0 && parsedPort <= 65535) ? parsedPort : 22;
 
         if (host.config.host.isEmpty()) {
             host.status = QStringLiteral("Not Configured");
@@ -157,6 +164,7 @@ void RemoteServersBackend::startFetch(int index)
         QStringLiteral("-o"), QStringLiteral("ConnectTimeout=4"),
         QStringLiteral("-o"), QStringLiteral("StrictHostKeyChecking=no"),
         QStringLiteral("-o"), QStringLiteral("UserKnownHostsFile=/dev/null"),
+        QStringLiteral("-p"), QString::number(host.config.port),
         host.config.host,
         remoteCollectCommand()
     });
@@ -426,6 +434,7 @@ QVariantMap RemoteServersBackend::stateToMap(const HostState &host) const
     QVariantMap map;
     map[QStringLiteral("name")] = host.config.name;
     map[QStringLiteral("host")] = host.config.host;
+    map[QStringLiteral("port")] = host.config.port;
     map[QStringLiteral("status")] = host.status;
     map[QStringLiteral("error")] = host.error;
     map[QStringLiteral("busy")] = host.busy;

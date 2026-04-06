@@ -30,6 +30,7 @@ private:
     struct HostConfig {
         QString name;
         QString host;
+        int port = 22;
     };
 
     struct HostState {
@@ -61,6 +62,5 @@ private:
 
     QVector<HostState> m_hosts;
     QTimer *m_timer = nullptr;
-    int m_intervalSec = 120;
+    int m_intervalSec = 60;
 };
-

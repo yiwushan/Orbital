@@ -18,9 +18,11 @@ VOLUME_KEY_PATH="${ORBITAL_VOLUME_KEY_PATH:-$DEFAULT_VOLUME_KEY_PATH}"
 SCREENSHOT_DIR="${ORBITAL_SCREENSHOT_DIR:-}"
 REMOTE_HOST_1="${ORBITAL_REMOTE_HOST_1:-}"
 REMOTE_HOST_2="${ORBITAL_REMOTE_HOST_2:-}"
+REMOTE_PORT_1="${ORBITAL_REMOTE_PORT_1:-22}"
+REMOTE_PORT_2="${ORBITAL_REMOTE_PORT_2:-22}"
 REMOTE_NAME_1="${ORBITAL_REMOTE_NAME_1:-}"
 REMOTE_NAME_2="${ORBITAL_REMOTE_NAME_2:-}"
-REMOTE_INTERVAL_SEC="${ORBITAL_REMOTE_INTERVAL_SEC:-120}"
+REMOTE_INTERVAL_SEC="${ORBITAL_REMOTE_INTERVAL_SEC:-60}"
 VOLUME_KEY_PATH_EXPLICIT=0
 
 if [[ -n "${ORBITAL_VOLUME_KEY_PATH:-}" ]]; then
@@ -40,6 +42,8 @@ Options:
   --screenshot-dir <path>        Set the screenshot output directory.
   --remote-host-1 <user@host>    Set first remote server SSH target.
   --remote-host-2 <user@host>    Set second remote server SSH target.
+  --remote-port-1 <port>         Set first remote server SSH port.
+  --remote-port-2 <port>         Set second remote server SSH port.
   --remote-name-1 <name>         Set first remote server display name.
   --remote-name-2 <name>         Set second remote server display name.
   --remote-interval-sec <sec>    Set remote polling interval in seconds.
@@ -147,6 +151,26 @@ while [[ $# -gt 0 ]]; do
             require_value "--remote-host-2" "$REMOTE_HOST_2"
             shift
             ;;
+        --remote-port-1)
+            require_value "$1" "$2"
+            REMOTE_PORT_1="$2"
+            shift 2
+            ;;
+        --remote-port-1=*)
+            REMOTE_PORT_1="${1#*=}"
+            require_value "--remote-port-1" "$REMOTE_PORT_1"
+            shift
+            ;;
+        --remote-port-2)
+            require_value "$1" "$2"
+            REMOTE_PORT_2="$2"
+            shift 2
+            ;;
+        --remote-port-2=*)
+            REMOTE_PORT_2="${1#*=}"
+            require_value "--remote-port-2" "$REMOTE_PORT_2"
+            shift
+            ;;
         --remote-name-1)
             require_value "$1" "$2"
             REMOTE_NAME_1="$2"
@@ -198,6 +222,8 @@ export ORBITAL_VOLUME_KEY_PATH="$VOLUME_KEY_PATH"
 export ORBITAL_SCREENSHOT_DIR="$SCREENSHOT_DIR"
 export ORBITAL_REMOTE_HOST_1="$REMOTE_HOST_1"
 export ORBITAL_REMOTE_HOST_2="$REMOTE_HOST_2"
+export ORBITAL_REMOTE_PORT_1="$REMOTE_PORT_1"
+export ORBITAL_REMOTE_PORT_2="$REMOTE_PORT_2"
 export ORBITAL_REMOTE_NAME_1="$REMOTE_NAME_1"
 export ORBITAL_REMOTE_NAME_2="$REMOTE_NAME_2"
 export ORBITAL_REMOTE_INTERVAL_SEC="$REMOTE_INTERVAL_SEC"

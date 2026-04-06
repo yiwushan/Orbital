@@ -113,9 +113,11 @@ cd build
 | `--screenshot-dir <路径>` | 截图保存目录 | 空（默认 `~/Pictures/Orbital/Screenshots`） |
 | `--remote-host-1 <user@host>` | 远端服务器1（SSH） | 空 |
 | `--remote-host-2 <user@host>` | 远端服务器2（SSH） | 空 |
+| `--remote-port-1 <port>` | 远端服务器1 SSH 端口 | `22` |
+| `--remote-port-2 <port>` | 远端服务器2 SSH 端口 | `22` |
 | `--remote-name-1 <名称>` | 远端服务器1显示名 | 空（默认 `Remote-A`） |
 | `--remote-name-2 <名称>` | 远端服务器2显示名 | 空（默认 `Remote-B`） |
-| `--remote-interval-sec <秒>` | 远端轮询周期 | `120` |
+| `--remote-interval-sec <秒>` | 远端轮询周期 | `60` |
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
@@ -127,9 +129,11 @@ cd build
 |------|------|--------|
 | `ORBITAL_REMOTE_HOST_1` | 远端1（例如 `user@10.0.0.11`） | 空 |
 | `ORBITAL_REMOTE_HOST_2` | 远端2（例如 `user@10.0.0.12`） | 空 |
+| `ORBITAL_REMOTE_PORT_1` | 远端1 SSH 端口 | `22` |
+| `ORBITAL_REMOTE_PORT_2` | 远端2 SSH 端口 | `22` |
 | `ORBITAL_REMOTE_NAME_1` | 远端1显示名称 | `Remote-A` |
 | `ORBITAL_REMOTE_NAME_2` | 远端2显示名称 | `Remote-B` |
-| `ORBITAL_REMOTE_INTERVAL_SEC` | 远端轮询周期（秒） | `120` |
+| `ORBITAL_REMOTE_INTERVAL_SEC` | 远端轮询周期（秒） | `60` |
 
 说明：
 - 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。

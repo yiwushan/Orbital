@@ -1497,7 +1497,7 @@ Window {
                                     Item { Layout.fillWidth: true }
 
                                     Text {
-                                        text: (serverData.host || "--") + "  @" + (serverData.lastUpdate || "--")
+                                        text: (serverData.host || "--") + ":" + (serverData.port || 22) + "  @" + (serverData.lastUpdate || "--")
                                         color: "#9db0c3"
                                         font.pixelSize: 10
                                         elide: Text.ElideLeft
