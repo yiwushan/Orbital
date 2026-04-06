@@ -775,8 +775,9 @@ Window {
         id: homePage
         Item {
             id: homeRoot
-            property int contentPadding: 12
-            property real metricsPanelHeight: Math.round(Math.max(170, height * 0.25))
+            property int horizontalPadding: 10
+            property int topPadding: 20
+            property int bottomPadding: 12
 
             Rectangle {
                 anchors.fill: parent
@@ -786,22 +787,23 @@ Window {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.leftMargin: homeRoot.contentPadding
-                anchors.rightMargin: homeRoot.contentPadding
-                anchors.topMargin: homeRoot.contentPadding
-                anchors.bottomMargin: homeRoot.contentPadding
+                anchors.leftMargin: homeRoot.horizontalPadding
+                anchors.rightMargin: homeRoot.horizontalPadding
+                anchors.topMargin: homeRoot.topPadding
+                anchors.bottomMargin: homeRoot.bottomPadding
                 spacing: 10
 
                 Rectangle {
                     id: metricsPanel
                     Layout.fillWidth: true
-                    Layout.preferredHeight: homeRoot.metricsPanelHeight
+                    Layout.preferredHeight: metricsPanelContent.implicitHeight + 24
                     color: "#1a1d23"
                     radius: 14
                     border.color: "#2c3038"
                     border.width: 1
 
                     ColumnLayout {
+                        id: metricsPanelContent
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 8
@@ -872,25 +874,35 @@ Window {
                                     spacing: 2
 
                                     Repeater {
-                                        model: Math.min(8, backend.cpuCores.length)
+                                        model: 8
 
                                         Rectangle {
                                             required property int index
                                             property real coreLoad: backend.cpuCores[index] || 0
 
-                                            width: 26
+                                            width: 22
                                             height: 18
-                                            radius: 9
-                                            color: "#252b36"
+                                            radius: 4
+                                            color: "#202634"
                                             border.width: 1
-                                            border.color: coreLoad > 0.7 ? "#ff5252"
-                                                                          : (coreLoad > 0.4 ? "#ffc107" : "#4caf50")
+                                            border.color: "#343b48"
+
+                                            Rectangle {
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.bottom: parent.bottom
+                                                anchors.margins: 1
+                                                height: Math.max(0, (parent.height - 2) * parent.coreLoad)
+                                                radius: 3
+                                                color: cpuColor(parent.coreLoad)
+                                            }
 
                                             Text {
                                                 anchors.centerIn: parent
-                                                text: index + ":" + Math.round(parent.coreLoad * 100)
+                                                text: Math.round(parent.coreLoad * 100)
                                                 color: "#e7ebf0"
                                                 font.pixelSize: 8
+                                                font.bold: true
                                                 font.family: "Monospace"
                                             }
                                         }
