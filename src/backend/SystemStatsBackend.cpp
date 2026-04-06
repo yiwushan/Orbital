@@ -35,6 +35,7 @@ void SystemStatsBackend::update()
 {
     readMemInfo();
     readCpuInfo();
+    readCpuTemp();
     readDiskInfo();
     readBatteryInfo();
     appendHistory(m_cpuHistory, m_cpuTotal * 100.0);
@@ -63,6 +64,11 @@ double SystemStatsBackend::memPercent() const
 QString SystemStatsBackend::memDetail() const
 {
     return m_memDetail;
+}
+
+QVariantMap SystemStatsBackend::memInfo() const
+{
+    return m_memInfo;
 }
 
 double SystemStatsBackend::diskPercent() const
@@ -125,6 +131,11 @@ QString SystemStatsBackend::netTxSpeed() const
     return m_netTxSpeed;
 }
 
+QString SystemStatsBackend::cpuTemp() const
+{
+    return m_cpuTemp;
+}
+
 QString SystemStatsBackend::loadAverage() const
 {
     return m_loadAverage;
@@ -154,6 +165,11 @@ void SystemStatsBackend::readMemInfo()
     QTextStream in(&file);
     long total = 0;
     long available = 0;
+    long free = 0;
+    long buffers = 0;
+    long cached = 0;
+    long swapTotal = 0;
+    long swapFree = 0;
 
     while (true) {
         const QString line = in.readLine();
@@ -165,6 +181,16 @@ void SystemStatsBackend::readMemInfo()
             total = parseMemValue(line);
         } else if (line.startsWith("MemAvailable:")) {
             available = parseMemValue(line);
+        } else if (line.startsWith("MemFree:")) {
+            free = parseMemValue(line);
+        } else if (line.startsWith("Buffers:")) {
+            buffers = parseMemValue(line);
+        } else if (line.startsWith("Cached:")) {
+            cached = parseMemValue(line);
+        } else if (line.startsWith("SwapTotal:")) {
+            swapTotal = parseMemValue(line);
+        } else if (line.startsWith("SwapFree:")) {
+            swapFree = parseMemValue(line);
         }
     }
 
@@ -174,6 +200,23 @@ void SystemStatsBackend::readMemInfo()
         m_memDetail = QString("%1 / %2 GB")
                           .arg(QString::number(used / 1024.0 / 1024.0, 'f', 1))
                           .arg(QString::number(total / 1024.0 / 1024.0, 'f', 1));
+
+        const long swapUsed = swapTotal > swapFree ? (swapTotal - swapFree) : 0;
+        const auto kbToHuman = [](long kb) {
+            return Backend::formatSize(static_cast<double>(kb) * 1024.0);
+        };
+
+        QVariantMap details;
+        details[QStringLiteral("Used")] = kbToHuman(used);
+        details[QStringLiteral("Total")] = kbToHuman(total);
+        details[QStringLiteral("Available")] = kbToHuman(available);
+        details[QStringLiteral("Free")] = kbToHuman(free);
+        details[QStringLiteral("Cached")] = kbToHuman(cached);
+        details[QStringLiteral("Buffers")] = kbToHuman(buffers);
+        details[QStringLiteral("Swap Used")] = kbToHuman(swapUsed);
+        details[QStringLiteral("Swap Free")] = kbToHuman(swapFree);
+        details[QStringLiteral("Swap Total")] = kbToHuman(swapTotal);
+        m_memInfo = details;
     }
 }
 
@@ -244,6 +287,85 @@ void SystemStatsBackend::readCpuInfo()
     }
 
     m_cpuCores = coresList;
+}
+
+void SystemStatsBackend::readCpuTemp()
+{
+    double bestTempC = -1.0;
+    int bestScore = -1;
+
+    const auto consider = [&](const QString &name, const QString &rawText) mutable {
+        bool ok = false;
+        const qint64 raw = rawText.trimmed().toLongLong(&ok);
+        if (!ok || raw <= 0) {
+            return;
+        }
+
+        const double tempC = (raw >= 1000) ? (raw / 1000.0) : static_cast<double>(raw);
+        if (tempC <= 0.0 || tempC > 150.0) {
+            return;
+        }
+
+        const QString lower = name.toLower();
+        int score = 1;
+        if (lower.contains(QStringLiteral("cpu")) || lower.contains(QStringLiteral("big"))
+            || lower.contains(QStringLiteral("little")) || lower.contains(QStringLiteral("gold"))
+            || lower.contains(QStringLiteral("silver"))) {
+            score = 10;
+        } else if (lower.contains(QStringLiteral("soc")) || lower.contains(QStringLiteral("ap"))) {
+            score = 8;
+        } else if (lower.contains(QStringLiteral("tsens")) || lower.contains(QStringLiteral("thermal"))) {
+            score = 6;
+        } else if (lower.contains(QStringLiteral("gpu"))) {
+            score = 4;
+        } else if (lower.contains(QStringLiteral("battery")) || lower.contains(QStringLiteral("charger"))) {
+            score = 2;
+        }
+
+        if (score > bestScore || (score == bestScore && tempC > bestTempC)) {
+            bestScore = score;
+            bestTempC = tempC;
+        }
+    };
+
+    const QDir thermalDir(QStringLiteral("/sys/class/thermal"));
+    const QStringList thermalEntries = thermalDir.entryList(QStringList() << QStringLiteral("thermal_zone*"),
+                                                            QDir::Dirs | QDir::NoDotAndDotDot,
+                                                            QDir::Name);
+    for (const QString &zoneName : thermalEntries) {
+        const QString zonePath = thermalDir.filePath(zoneName);
+        const QString type = Backend::readTextFile(zonePath + QStringLiteral("/type")).trimmed();
+        const QString tempRaw = Backend::readTextFile(zonePath + QStringLiteral("/temp"));
+        consider(type.isEmpty() ? zoneName : type, tempRaw);
+    }
+
+    const QDir hwmonDir(QStringLiteral("/sys/class/hwmon"));
+    const QStringList hwmonEntries = hwmonDir.entryList(QStringList() << QStringLiteral("hwmon*"),
+                                                        QDir::Dirs | QDir::NoDotAndDotDot,
+                                                        QDir::Name);
+    for (const QString &entryName : hwmonEntries) {
+        const QString hwmonPath = hwmonDir.filePath(entryName);
+        const QString baseName = Backend::readTextFile(hwmonPath + QStringLiteral("/name")).trimmed();
+        const QDir sensorDir(hwmonPath);
+        const QStringList tempInputs = sensorDir.entryList(QStringList() << QStringLiteral("temp*_input"),
+                                                           QDir::Files,
+                                                           QDir::Name);
+        for (const QString &tempInput : tempInputs) {
+            const QString sensorIndex = tempInput.mid(4, tempInput.size() - 10);
+            const QString label = Backend::readTextFile(sensorDir.filePath(QStringLiteral("temp%1_label").arg(sensorIndex))).trimmed();
+            QString sensorName = baseName.isEmpty() ? entryName : baseName;
+            if (!label.isEmpty()) {
+                sensorName += QStringLiteral(" / ") + label;
+            }
+            consider(sensorName, Backend::readTextFile(sensorDir.filePath(tempInput)));
+        }
+    }
+
+    if (bestTempC > 0.0) {
+        m_cpuTemp = QString::number(bestTempC, 'f', 1) + QStringLiteral(" °C");
+    } else {
+        m_cpuTemp = QStringLiteral("--");
+    }
 }
 
 void SystemStatsBackend::readDiskInfo()

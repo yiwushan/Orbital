@@ -18,6 +18,7 @@ public:
     QVariantList cpuCores() const;
     double memPercent() const;
     QString memDetail() const;
+    QVariantMap memInfo() const;
     double diskPercent() const;
     QString diskRootUsage() const;
     QVariantList diskPartitions() const;
@@ -30,6 +31,7 @@ public:
     QVariantList netTxHistory() const;
     QString netRxSpeed() const;
     QString netTxSpeed() const;
+    QString cpuTemp() const;
     QString loadAverage() const;
     QVariantList netInterfaces() const;
 
@@ -41,6 +43,7 @@ private:
     void readMemInfo();
     long parseMemValue(const QString &line) const;
     void readCpuInfo();
+    void readCpuTemp();
     void readDiskInfo();
     void readBatteryInfo();
     void readNetworkInfo();
@@ -51,6 +54,7 @@ private:
     QVariantList m_cpuCores;
     double m_memPercent = 0;
     QString m_memDetail;
+    QVariantMap m_memInfo;
     double m_diskPercent = 0;
     QString m_diskRootUsage;
     QVariantList m_diskPartitions;
@@ -69,6 +73,7 @@ private:
     QVariantList m_netTxHistory;
     QString m_netRxSpeed = "0 B/s";
     QString m_netTxSpeed = "0 B/s";
+    QString m_cpuTemp = "--";
     QString m_loadAverage = "0.00 / 0.00 / 0.00";
     QVariantList m_netInterfaces;
     QString m_batteryPath;

@@ -309,6 +309,99 @@ Window {
         }
     }
 
+    Popup {
+        id: memPopup
+        parent: Overlay.overlay
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: parent.width * 0.85
+        height: parent.height * 0.55
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Overlay.modal: Rectangle { color: "#aa000000" }
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1.0; duration: 200 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 200 }
+            NumberAnimation { property: "scale"; from: 1.0; to: 0.9; duration: 200 }
+        }
+
+        background: Rectangle {
+            color: "#1e1e1e"
+            radius: 15
+            border.color: "#333333"
+            border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 16
+            Item { height: 10; Layout.fillWidth: true }
+
+            Text {
+                text: "Memory Details"
+                color: "white"
+                font.pixelSize: 20
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                text: backend.memDetail + " (" + (backend.memPercent * 100).toFixed(0) + "%)"
+                color: "#9fb4cf"
+                font.pixelSize: 13
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            ListView {
+                focus: true
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                clip: true
+                spacing: 10
+                model: [
+                    "Used", "Total", "Available", "Free",
+                    "Cached", "Buffers", "Swap Used", "Swap Free", "Swap Total"
+                ]
+
+                delegate: RowLayout {
+                    required property string modelData
+                    visible: backend.memInfo[modelData] !== undefined && backend.memInfo[modelData] !== ""
+                    width: ListView.view.width
+                    spacing: 8
+
+                    Text {
+                        text: modelData
+                        color: "#888888"
+                        font.pixelSize: 13
+                        Layout.preferredWidth: parent.width * 0.45
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        text: backend.memInfo[modelData]
+                        color: "white"
+                        font.pixelSize: 13
+                        font.bold: true
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        elide: Text.ElideMiddle
+                    }
+                }
+            }
+
+            Item { height: 8; Layout.fillWidth: true }
+        }
+    }
+
     // 3. 电池详情模态框 (Fixed Overflow & Layout)
     Popup {
         id: batPopup
@@ -876,11 +969,25 @@ Window {
 
                                         Item { Layout.fillWidth: true }
 
-                                        Text {
-                                            text: (backend.cpuTotal * 100).toFixed(0) + "%"
-                                            color: cpuColor(backend.cpuTotal)
-                                            font.pixelSize: 16
-                                            font.bold: true
+                                        Column {
+                                            spacing: 1
+                                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                                            Text {
+                                                text: (backend.cpuTotal * 100).toFixed(0) + "%"
+                                                color: cpuColor(backend.cpuTotal)
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
+
+                                            Text {
+                                                text: backend.cpuTemp
+                                                color: "#FFB74D"
+                                                font.pixelSize: 10
+                                                font.bold: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
                                         }
                                     }
 
@@ -946,7 +1053,7 @@ Window {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                color: "#1a1d23"
+                                color: memTap.pressed ? "#2a303a" : "#1a1d23"
                                 radius: 12
                                 border.color: "#2c3038"
                                 border.width: 1
@@ -994,6 +1101,12 @@ Window {
                                         suffix: "%"
                                         showLegend: false
                                     }
+                                }
+
+                                TapHandler {
+                                    id: memTap
+                                    enabled: !memPopup.visible
+                                    onTapped: memPopup.open()
                                 }
                             }
                         }
@@ -1121,7 +1234,7 @@ Window {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 92
+                    Layout.preferredHeight: 106
                     radius: 12
                     color: netTap.pressed ? "#2a2f39" : "#1a1f29"
                     border.color: "#2c3038"

@@ -57,6 +57,11 @@ QVariantList SystemMonitor::cpuCores() const
     return m_statsBackend->cpuCores();
 }
 
+QString SystemMonitor::cpuTemp() const
+{
+    return m_statsBackend->cpuTemp();
+}
+
 double SystemMonitor::memPercent() const
 {
     return m_statsBackend->memPercent();
@@ -65,6 +70,11 @@ double SystemMonitor::memPercent() const
 QString SystemMonitor::memDetail() const
 {
     return m_statsBackend->memDetail();
+}
+
+QVariantMap SystemMonitor::memInfo() const
+{
+    return m_statsBackend->memInfo();
 }
 
 double SystemMonitor::diskPercent() const
