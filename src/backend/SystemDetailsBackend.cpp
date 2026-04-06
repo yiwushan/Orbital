@@ -4,9 +4,11 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>
 #include <QRegularExpression>
+#include <QSet>
 #include <QTextStream>
 #include <QTimer>
 
@@ -35,6 +37,8 @@ struct RankedProcess
     QString name;
     double cpuPercent = 0.0;
     double memPercent = 0.0;
+    double ioRateKBps = 0.0;
+    int netSockets = 0;
     qint64 rssBytes = 0;
 };
 
@@ -235,6 +239,33 @@ QVariantList SystemDetailsBackend::diskIoSpeeds() const
     return m_diskIoSpeeds;
 }
 
+QString SystemDetailsBackend::topProcessSort() const
+{
+    return m_topProcessSort;
+}
+
+void SystemDetailsBackend::setTopProcessSort(const QString &sortMode)
+{
+    QString normalized = sortMode.trimmed().toLower();
+    if (normalized != QLatin1String("cpu")
+        && normalized != QLatin1String("mem")
+        && normalized != QLatin1String("io")
+        && normalized != QLatin1String("net")) {
+        normalized = QStringLiteral("cpu");
+    }
+
+    if (m_topProcessSort == normalized) {
+        return;
+    }
+
+    m_topProcessSort = normalized;
+    emit topProcessSortChanged();
+
+    if (m_active) {
+        refresh();
+    }
+}
+
 int SystemDetailsBackend::topProcessLimit() const
 {
     return kTopProcessLimit;
@@ -261,6 +292,7 @@ void SystemDetailsBackend::refresh()
 void SystemDetailsBackend::resetSamplingState()
 {
     m_prevProcessCpuTimes.clear();
+    m_prevProcessIoBytes.clear();
     m_prevTotalCpuTime = 0;
     m_prevNetCounters.clear();
     m_prevDiskIoCounters.clear();
@@ -440,9 +472,11 @@ void SystemDetailsBackend::readTopProcesses()
     const double totalCpuDiff = totalCpuTime >= m_prevTotalCpuTime
                                     ? static_cast<double>(totalCpuTime - m_prevTotalCpuTime)
                                     : 0.0;
+    const double intervalSec = kRefreshIntervalMs / 1000.0;
 
     QVector<RankedProcess> ranked;
     QHash<int, quint64> processTimes;
+    QHash<int, quint64> processIoBytes;
 
     const QDir procDir(QStringLiteral("/proc"));
     const QStringList procEntries = procDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
@@ -459,6 +493,7 @@ void SystemDetailsBackend::readTopProcesses()
         }
 
         processTimes.insert(sample.pid, sample.totalCpuTime);
+        processIoBytes.insert(sample.pid, sample.ioBytes);
 
         RankedProcess process;
         process.pid = sample.pid;
@@ -476,12 +511,46 @@ void SystemDetailsBackend::readTopProcesses()
             process.cpuPercent = static_cast<double>(processDiff) * 100.0 / totalCpuDiff;
         }
 
+        const quint64 previousIoBytes = m_prevProcessIoBytes.value(sample.pid, sample.ioBytes);
+        const quint64 ioDiff = sample.ioBytes >= previousIoBytes
+                                   ? (sample.ioBytes - previousIoBytes)
+                                   : 0;
+        process.ioRateKBps = intervalSec > 0.0 ? (ioDiff / intervalSec / 1024.0) : 0.0;
+        process.netSockets = sample.netSocketCount;
+
         ranked.append(process);
     }
 
-    std::sort(ranked.begin(), ranked.end(), [](const RankedProcess &left, const RankedProcess &right) {
-        if (std::abs(left.cpuPercent - right.cpuPercent) > 0.05) {
-            return left.cpuPercent > right.cpuPercent;
+    const QString sortMode = m_topProcessSort;
+    std::sort(ranked.begin(), ranked.end(), [sortMode](const RankedProcess &left, const RankedProcess &right) {
+        if (sortMode == QLatin1String("mem")) {
+            if (std::abs(left.memPercent - right.memPercent) > 0.03) {
+                return left.memPercent > right.memPercent;
+            }
+            if (std::abs(left.cpuPercent - right.cpuPercent) > 0.03) {
+                return left.cpuPercent > right.cpuPercent;
+            }
+        } else if (sortMode == QLatin1String("io")) {
+            if (std::abs(left.ioRateKBps - right.ioRateKBps) > 1.0) {
+                return left.ioRateKBps > right.ioRateKBps;
+            }
+            if (std::abs(left.cpuPercent - right.cpuPercent) > 0.03) {
+                return left.cpuPercent > right.cpuPercent;
+            }
+        } else if (sortMode == QLatin1String("net")) {
+            if (left.netSockets != right.netSockets) {
+                return left.netSockets > right.netSockets;
+            }
+            if (std::abs(left.ioRateKBps - right.ioRateKBps) > 1.0) {
+                return left.ioRateKBps > right.ioRateKBps;
+            }
+        } else {
+            if (std::abs(left.cpuPercent - right.cpuPercent) > 0.03) {
+                return left.cpuPercent > right.cpuPercent;
+            }
+            if (std::abs(left.memPercent - right.memPercent) > 0.03) {
+                return left.memPercent > right.memPercent;
+            }
         }
 
         if (left.rssBytes != right.rssBytes) {
@@ -504,11 +573,17 @@ void SystemDetailsBackend::readTopProcesses()
             QStringLiteral("%1%").arg(QString::number(process.cpuPercent, 'f', process.cpuPercent >= 10.0 ? 0 : 1));
         map[QStringLiteral("memoryPercent")] = process.memPercent;
         map[QStringLiteral("displayMemory")] = Backend::formatSize(process.rssBytes);
+        map[QStringLiteral("ioKBps")] = process.ioRateKBps;
+        map[QStringLiteral("displayIo")] =
+            Backend::formatSpeed(static_cast<quint64>(std::max(0.0, process.ioRateKBps * 1024.0)));
+        map[QStringLiteral("netSockets")] = process.netSockets;
+        map[QStringLiteral("displayNet")] = QStringLiteral("%1 conn").arg(process.netSockets);
         topProcesses.append(map);
     }
 
     m_topProcesses = topProcesses;
     m_prevProcessCpuTimes = processTimes;
+    m_prevProcessIoBytes = processIoBytes;
     m_prevTotalCpuTime = totalCpuTime;
 }
 
@@ -708,6 +783,50 @@ bool SystemDetailsBackend::readProcessSample(const QString &pidText, ProcessSamp
     sample.name = name.isEmpty() ? QStringLiteral("unknown") : name;
     sample.totalCpuTime = userTime + systemTime;
     sample.rssBytes = std::max<qint64>(0, rssPages) * m_pageSizeBytes;
+
+    quint64 ioReadBytes = 0;
+    quint64 ioWriteBytes = 0;
+    QFile ioFile(QStringLiteral("/proc/%1/io").arg(pidText));
+    if (ioFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream ioStream(&ioFile);
+        while (!ioStream.atEnd()) {
+            const QString line = ioStream.readLine();
+            if (line.startsWith(QStringLiteral("read_bytes:"))) {
+                ioReadBytes = line.section(QLatin1Char(':'), 1).trimmed().toULongLong();
+            } else if (line.startsWith(QStringLiteral("write_bytes:"))) {
+                ioWriteBytes = line.section(QLatin1Char(':'), 1).trimmed().toULongLong();
+            }
+        }
+    }
+    sample.ioBytes = ioReadBytes + ioWriteBytes;
+
+    QSet<QString> socketInodes;
+    const QDir fdDir(QStringLiteral("/proc/%1/fd").arg(pidText));
+    const QFileInfoList fdEntries = fdDir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot,
+                                                        QDir::Name);
+    int scannedFd = 0;
+    for (const QFileInfo &entry : fdEntries) {
+        if (++scannedFd > 256) {
+            break;
+        }
+
+        if (!entry.isSymLink()) {
+            continue;
+        }
+
+        const QString target = entry.symLinkTarget();
+        if (!target.startsWith(QStringLiteral("socket:["))) {
+            continue;
+        }
+
+        const int begin = target.indexOf(QLatin1Char('['));
+        const int end = target.indexOf(QLatin1Char(']'));
+        if (begin >= 0 && end > begin + 1) {
+            socketInodes.insert(target.mid(begin + 1, end - begin - 1));
+        }
+    }
+    sample.netSocketCount = socketInodes.size();
+
     return true;
 }
 

@@ -21,6 +21,7 @@ class SystemDetailsBackend : public QObject
     Q_PROPERTY(QVariantList networkSpeeds READ networkSpeeds NOTIFY dataChanged)
     Q_PROPERTY(QVariantList memoryDetails READ memoryDetails NOTIFY dataChanged)
     Q_PROPERTY(QVariantList diskIoSpeeds READ diskIoSpeeds NOTIFY dataChanged)
+    Q_PROPERTY(QString topProcessSort READ topProcessSort WRITE setTopProcessSort NOTIFY topProcessSortChanged)
     Q_PROPERTY(int topProcessLimit READ topProcessLimit CONSTANT)
 
 public:
@@ -39,6 +40,8 @@ public:
     QVariantList networkSpeeds() const;
     QVariantList memoryDetails() const;
     QVariantList diskIoSpeeds() const;
+    QString topProcessSort() const;
+    void setTopProcessSort(const QString &sortMode);
     int topProcessLimit() const;
 
     Q_INVOKABLE void refreshNow();
@@ -46,6 +49,7 @@ public:
 signals:
     void activeChanged();
     void dataChanged();
+    void topProcessSortChanged();
 
 private slots:
     void refresh();
@@ -56,6 +60,8 @@ private:
         QString name;
         quint64 totalCpuTime = 0;
         qint64 rssBytes = 0;
+        quint64 ioBytes = 0;
+        int netSocketCount = 0;
     };
 
     void resetSamplingState();
@@ -83,11 +89,13 @@ private:
     QVariantList m_networkSpeeds;
     QVariantList m_memoryDetails;
     QVariantList m_diskIoSpeeds;
+    QString m_topProcessSort = QStringLiteral("cpu");
     struct NetCounter { quint64 rx = 0; quint64 tx = 0; };
     QHash<QString, NetCounter> m_prevNetCounters;
     struct DiskIoCounter { quint64 readSectors = 0; quint64 writeSectors = 0; };
     QHash<QString, DiskIoCounter> m_prevDiskIoCounters;
     QHash<int, quint64> m_prevProcessCpuTimes;
+    QHash<int, quint64> m_prevProcessIoBytes;
     quint64 m_prevTotalCpuTime = 0;
     qint64 m_totalMemoryKb = 0;
     qint64 m_pageSizeBytes = 4096;

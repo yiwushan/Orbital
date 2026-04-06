@@ -311,13 +311,43 @@ Window {
 
     Popup {
         id: memPopup
+        property var detailsCtrl: backend ? backend.systemDetailsBackend : null
+        property string sortMode: "cpu"
+
+        function metricText(item) {
+            if (!item)
+                return "--"
+            if (sortMode === "mem")
+                return item.displayMemory + " (" + Number(item.memoryPercent).toFixed(1) + "%)"
+            if (sortMode === "io")
+                return item.displayIo
+            if (sortMode === "net")
+                return item.displayNet
+            return item.displayCpu
+        }
+
         parent: Overlay.overlay
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
         width: parent.width * 0.85
-        height: parent.height * 0.55
+        height: parent.height * 0.68
         modal: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        onOpened: {
+            sortMode = "cpu"
+            if (detailsCtrl) {
+                detailsCtrl.topProcessSort = sortMode
+                detailsCtrl.active = true
+            }
+        }
+        onClosed: {
+            if (detailsCtrl)
+                detailsCtrl.active = false
+        }
+        onSortModeChanged: {
+            if (detailsCtrl)
+                detailsCtrl.topProcessSort = sortMode
+        }
 
         Overlay.modal: Rectangle { color: "#aa000000" }
         enter: Transition {
@@ -337,7 +367,7 @@ Window {
         }
 
         contentItem: ColumnLayout {
-            spacing: 16
+            spacing: 12
             Item { height: 10; Layout.fillWidth: true }
 
             Text {
@@ -359,6 +389,121 @@ Window {
                 elide: Text.ElideRight
             }
 
+            Row {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 8
+
+                Repeater {
+                    model: [
+                        { key: "cpu", label: "CPU" },
+                        { key: "mem", label: "MEM" },
+                        { key: "io", label: "IO" },
+                        { key: "net", label: "NET" }
+                    ]
+
+                    Rectangle {
+                        required property var modelData
+                        width: 56
+                        height: 24
+                        radius: 12
+                        color: memPopup.sortMode === modelData.key
+                               ? "#2e6ea6"
+                               : (sortTap.pressed ? "#25303d" : "#1a2430")
+                        border.width: 1
+                        border.color: memPopup.sortMode === modelData.key ? "#78b9ff" : "#33475c"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: parent.modelData.label
+                            color: "white"
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        TapHandler {
+                            id: sortTap
+                            onTapped: memPopup.sortMode = parent.modelData.key
+                        }
+                    }
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                text: "Top Processes by " + (memPopup.sortMode === "mem" ? "MEM"
+                     : memPopup.sortMode === "io" ? "IO"
+                     : memPopup.sortMode === "net" ? "NET" : "CPU")
+                color: "#b7c4d4"
+                font.pixelSize: 11
+            }
+
+            ListView {
+                focus: true
+                Layout.fillWidth: true
+                Layout.preferredHeight: 138
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                clip: true
+                spacing: 6
+                model: memPopup.detailsCtrl ? memPopup.detailsCtrl.topProcesses.slice(0, 6) : []
+
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 38
+                    radius: 8
+                    color: "#222831"
+                    border.width: 1
+                    border.color: "#323b46"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        Text {
+                            text: modelData.name + " [" + modelData.pid + "]"
+                            color: "#e5e9ef"
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: memPopup.metricText(modelData)
+                            color: "#9dd4ff"
+                            font.pixelSize: 11
+                            font.bold: true
+                            font.family: "Monospace"
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideLeft
+                            Layout.preferredWidth: 110
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                height: 1
+                color: "#323a43"
+            }
+
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                text: "Memory Breakdown"
+                color: "#b7c4d4"
+                font.pixelSize: 11
+                font.bold: true
+            }
+
             ListView {
                 focus: true
                 Layout.fillWidth: true
@@ -366,7 +511,7 @@ Window {
                 Layout.leftMargin: 24
                 Layout.rightMargin: 24
                 clip: true
-                spacing: 10
+                spacing: 8
                 model: [
                     "Used", "Total", "Available", "Free",
                     "Cached", "Buffers", "Swap Used", "Swap Free", "Swap Total"
@@ -381,7 +526,7 @@ Window {
                     Text {
                         text: modelData
                         color: "#888888"
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         Layout.preferredWidth: parent.width * 0.45
                         elide: Text.ElideRight
                     }
@@ -389,7 +534,7 @@ Window {
                     Text {
                         text: backend.memInfo[modelData]
                         color: "white"
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         font.bold: true
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
