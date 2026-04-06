@@ -778,6 +778,9 @@ Window {
             property int horizontalPadding: 10
             property int topPadding: 0
             property int bottomPadding: 10
+            property int metricsHeight: Math.round(window.height * 0.25)
+            property int metricsBottomRowHeight: 56
+            property int metricsTopRowHeight: Math.max(100, metricsHeight - metricsBottomRowHeight - 10)
 
             Rectangle {
                 anchors.fill: parent
@@ -800,7 +803,7 @@ Window {
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 2
-                        anchors.rightMargin: 2
+                        anchors.rightMargin: 14
                         spacing: 8
 
                         Text {
@@ -808,14 +811,14 @@ Window {
                             color: "white"
                             font.bold: true
                             font.pixelSize: 24
-                            Layout.alignment: Qt.AlignTop
+                            Layout.alignment: Qt.AlignBottom
                         }
 
                         Item { Layout.fillWidth: true }
 
                         Row {
                             spacing: 8
-                            Layout.alignment: Qt.AlignTop
+                            Layout.alignment: Qt.AlignBottom
 
                             IconImage {
                                 source: "qrc:/MyDesktop/Backend/assets/logo.svg"
@@ -835,7 +838,7 @@ Window {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 190
+                    Layout.preferredHeight: homeRoot.metricsTopRowHeight
                     spacing: 10
 
                     Rectangle {
@@ -989,7 +992,7 @@ Window {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 66
+                    Layout.preferredHeight: homeRoot.metricsBottomRowHeight
                     spacing: 10
 
                     Rectangle {
@@ -1108,7 +1111,7 @@ Window {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Layout.preferredHeight: 108
                     radius: 12
                     color: netTap.pressed ? "#2a2f39" : "#1a1f29"
                     border.color: "#2c3038"
@@ -1170,6 +1173,11 @@ Window {
                         enabled: !netPopup.visible
                         onTapped: netPopup.open()
                     }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
             }
         }
