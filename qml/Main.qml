@@ -774,248 +774,304 @@ Window {
     Component {
         id: homePage
         Item {
-            Rectangle { 
+            id: homeRoot
+            property int safeTopInset: Math.round(Math.max(24, window.height * 0.045))
+            property int contentPadding: 12
+            property real metricsPanelHeight: Math.round(Math.max(170, height * 0.25))
+
+            Rectangle {
                 anchors.fill: parent
                 color: "#121212"
-                z: -1 // 放在最底层作为背景
+                z: -1
             }
+
             ColumnLayout {
-                id: mainCol
-                width: parent.width - 20
-                x: 10
-                y: 20
-                spacing: 15
+                anchors.fill: parent
+                anchors.leftMargin: homeRoot.contentPadding
+                anchors.rightMargin: homeRoot.contentPadding
+                anchors.topMargin: homeRoot.contentPadding
+                anchors.bottomMargin: homeRoot.contentPadding
+                spacing: 10
 
-                Text { text: "Dashboard"; color: "white"; font.bold: true; font.pixelSize: 24; Layout.leftMargin: 5 }
-
-                // --- Row 1: CPU & Memory ---
-                RowLayout {
+                Item {
                     Layout.fillWidth: true
-                    spacing: 15
+                    Layout.preferredHeight: homeRoot.safeTopInset
+                }
 
-                    // CPU Card
-                    Rectangle {
-                        Layout.fillWidth: true; height: 160
-                        color: tapCpu.pressed ? "#2a2a2a" : "#1e1e1e"; radius: 12
-                        
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 15 // 控制圆环与下方核心指示器的间距
+                Rectangle {
+                    id: metricsPanel
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: homeRoot.metricsPanelHeight
+                    color: "#1a1d23"
+                    radius: 14
+                    border.color: "#2c3038"
+                    border.width: 1
 
-                            CircleProgress {
-                                Layout.preferredWidth: 90; Layout.preferredHeight: 90
-                                value: backend.cpuTotal
-                                centerText: (backend.cpuTotal * 100).toFixed(0) + "%"
-                                subText: "CPU"
-                                primaryColor: cpuColor(backend.cpuTotal)
-                                Layout.alignment: Qt.AlignHCenter // 确保圆环自身居中
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+
+                            Text {
+                                id: dashboardTitle
+                                anchors.left: parent.left
+                                anchors.bottom: parent.bottom
+                                text: "Dashboard"
+                                color: "white"
+                                font.bold: true
+                                font.pixelSize: 30
                             }
-                            
-                            // 核心指示器
+
                             Row {
-                                Layout.alignment: Qt.AlignHCenter // 确保这行小点点居中
-                                spacing: 4
-                                Repeater {
-                                    model: backend.cpuCores
-                                    Rectangle {
-                                        width: 8; height: 8; radius: 2
-                                        color: cpuColor(modelData)
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                spacing: 8
+
+                                IconImage {
+                                    source: "qrc:/MyDesktop/Backend/assets/logo.svg"
+                                    sourceSize: Qt.size(30, 30)
+                                    color: "white"
+                                }
+
+                                Text {
+                                    text: appName
+                                    color: "#efefef"
+                                    font.pixelSize: 23
+                                    font.bold: true
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: "#2f3440"
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: 8
+                            color: cpuTap.pressed ? "#2a303a" : "#141922"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Text {
+                                    text: "CPU " + (backend.cpuTotal * 100).toFixed(0) + "%"
+                                    color: cpuColor(backend.cpuTotal)
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                    Layout.preferredWidth: 72
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Row {
+                                    spacing: 2
+
+                                    Repeater {
+                                        model: Math.min(8, backend.cpuCores.length)
+
+                                        Rectangle {
+                                            required property int index
+                                            property real coreLoad: backend.cpuCores[index] || 0
+
+                                            width: 26
+                                            height: 18
+                                            radius: 9
+                                            color: "#252b36"
+                                            border.width: 1
+                                            border.color: coreLoad > 0.7 ? "#ff5252"
+                                                                          : (coreLoad > 0.4 ? "#ffc107" : "#4caf50")
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: index + ":" + Math.round(parent.coreLoad * 100)
+                                                color: "#e7ebf0"
+                                                font.pixelSize: 8
+                                                font.family: "Monospace"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            TapHandler {
+                                id: cpuTap
+                                enabled: !cpuDetailsPopup.visible
+                                onTapped: cpuDetailsPopup.open()
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: 8
+                            color: "#141922"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Text {
+                                    text: "Memory " + (backend.memPercent * 100).toFixed(0) + "%"
+                                    color: memColor(backend.memPercent)
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Text {
+                                    text: backend.memDetail
+                                    color: "#d0d5de"
+                                    font.pixelSize: 13
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: 8
+                            color: "#141922"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                spacing: 6
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 26
+                                    radius: 6
+                                    color: diskTap.pressed ? "#2a303a" : "#202736"
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Text {
+                                            text: "Disk " + (backend.diskPercent * 100).toFixed(0) + "%"
+                                            color: diskColor(backend.diskPercent)
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Text {
+                                            text: backend.diskRootUsage
+                                            color: "#c6ccd7"
+                                            font.pixelSize: 12
+                                            elide: Text.ElideMiddle
+                                            Layout.maximumWidth: 120
+                                        }
+                                    }
+
+                                    TapHandler {
+                                        id: diskTap
+                                        enabled: !diskPopup.visible
+                                        onTapped: diskPopup.open()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.preferredWidth: 130
+                                    Layout.preferredHeight: 26
+                                    radius: 6
+                                    color: batTap.pressed ? "#2a303a" : "#202736"
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 6
+
+                                        Text {
+                                            text: "BAT " + backend.batPercent + "%"
+                                            color: batteryColor(backend.batPercent, backend.batState)
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Text {
+                                            text: backend.batState
+                                            color: "#c6ccd7"
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                            Layout.maximumWidth: 62
+                                        }
+                                    }
+
+                                    TapHandler {
+                                        id: batTap
+                                        enabled: !batPopup.visible
+                                        onTapped: batPopup.open()
                                     }
                                 }
                             }
                         }
-                        TapHandler { 
-                            id: tapCpu
-                            enabled: !cpuDetailsPopup.visible
-                            onTapped: {
-                                if (!cpuDetailsPopup.visible) {
-                                    cpuDetailsPopup.open()
-                                }
-                            }
-                            // 防止多点触控干扰
-                            acceptedButtons: Qt.LeftButton
-                            // 设置适当的阈值
-                            gesturePolicy: TapHandler.WithinBounds
-                            // 处理取消事件
-                            onCanceled: {
-                            }
-                        }
-                    }
-
-                    // Memory Card
-                    Rectangle {
-                        Layout.fillWidth: true; height: 160; color: "#1e1e1e"; radius: 12
-                        
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 15 // 增加圆环与文字间距
-
-                            CircleProgress {
-                                Layout.preferredWidth: 90; Layout.preferredHeight: 90
-                                value: backend.memPercent
-                                centerText: (backend.memPercent * 100).toFixed(0) + "%"
-                                subText: "MEM"
-                                primaryColor: memColor(backend.memPercent)
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-                            
-                            Text { 
-                                text: backend.memDetail
-                                color: "#aaa"; font.pixelSize: 12 // 字体稍微调大一点点更清晰
-                                Layout.alignment: Qt.AlignHCenter // 确保文字居中
-                            }
-                        }
                     }
                 }
 
-                // --- Row 2: Disk & Battery ---
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 15
-
-                    // Disk Card (Root)
-                    Rectangle {
-                        Layout.fillWidth: true; height: 160
-                        color: tapDisk.pressed ? "#2a2a2a" : "#1e1e1e"; radius: 12
-                        
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 15 // 增加圆环与文字间距
-
-                            CircleProgress {
-                                Layout.preferredWidth: 90; Layout.preferredHeight: 90
-                                value: backend.diskPercent
-                                centerText: (backend.diskPercent * 100).toFixed(0) + "%"
-                                subText: "DISK (/)"
-                                primaryColor: diskColor(backend.diskPercent)
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-                            
-                            Text { 
-                                text: backend.diskRootUsage
-                                color: "#aaa"; font.pixelSize: 12 
-                                Layout.alignment: Qt.AlignHCenter // 确保文字居中
-                            }
-                        }
-                        TapHandler { 
-                            id: tapDisk
-                            enabled: !diskPopup.visible
-                            onTapped: {
-                                if (!diskPopup.visible) {
-                                    diskPopup.open()
-                                }
-                            }
-                            // 防止多点触控干扰
-                            acceptedButtons: Qt.LeftButton
-                            // 设置适当的阈值
-                            gesturePolicy: TapHandler.WithinBounds
-                            // 处理取消事件
-                            onCanceled: {
-                                // 清理状态
-                            }
-                        }
-                    }
-
-                    // Battery Card
-                    Rectangle {
-                        Layout.fillWidth: true; height: 160
-                        color: tapBat.pressed ? "#2a2a2a" : "#1e1e1e"; radius: 12
-                        
-                        ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 15 // 增加圆环与文字间距
-
-                            CircleProgress {
-                                Layout.preferredWidth: 90; Layout.preferredHeight: 90
-                                value: backend.batPercent / 100.0
-                                centerText: backend.batPercent + "%"
-                                subText: "BATTERY"
-                                primaryColor: batteryColor(backend.batPercent, backend.batState)
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-                            
-                            Text { 
-                                text: backend.batState
-                                color: "#aaa"; font.pixelSize: 12 
-                                Layout.alignment: Qt.AlignHCenter // 确保文字居中
-                            }
-                        }
-                        TapHandler { 
-                            id: tapBat
-                            enabled: !batPopup.visible
-                            onTapped: {
-                                if (!batPopup.visible) {
-                                    batPopup.open()
-                                }
-                            }
-                            // 防止多点触控干扰
-                            acceptedButtons: Qt.LeftButton
-                            // 设置适当的阈值
-                            gesturePolicy: TapHandler.WithinBounds
-                            // 处理取消事件
-                            onCanceled: {
-                                // 清理状态
-                            }
-                        }
-                    }
-                }
-
-                // --- Row 2.5: Real-time Network Status ---
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 80
-                    color: netTap.pressed ? "#2a2a2a" : "#1e1e1e"
+                    Layout.preferredHeight: 58
                     radius: 12
-                    
+                    color: netTap.pressed ? "#2a2f39" : "#1a1f29"
+                    border.color: "#2c3038"
+                    border.width: 1
+
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: 20
-                        spacing: 10
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        spacing: 8
 
-                        // 图标/标题区域
-                        ColumnLayout {
-                            spacing: 2
-                            Text { text: "Network"; color: "white"; font.bold: true; font.pixelSize: 16 }
-                            Text { text: "Total Traffic"; color: "#666"; font.pixelSize: 12 }
+                        Text {
+                            text: "Network"
+                            color: "white"
+                            font.pixelSize: 15
+                            font.bold: true
                         }
 
-                        Item { Layout.fillWidth: true } // 弹簧
+                        Item { Layout.fillWidth: true }
 
-                        // 下载速度
-                        ColumnLayout {
-                            spacing: 2
-                            Layout.alignment: Qt.AlignRight
-                            Text { 
-                                text: "⬇ " + backend.netRxSpeed
-                                color: "#00E676" // 绿色
-                                font.family: "Monospace"
-                                font.bold: true
-                                font.pixelSize: 15
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text { text: "Download"; color: "#666"; font.pixelSize: 10; Layout.alignment: Qt.AlignRight }
+                        Text {
+                            text: "⬇ " + backend.netRxSpeed
+                            color: "#00E676"
+                            font.pixelSize: 14
+                            font.family: "Monospace"
+                            font.bold: true
                         }
-                        
-                        // 分割线
-                        Rectangle { width: 1; height: 30; color: "#333" }
 
-                        // 上传速度
-                        ColumnLayout {
-                            spacing: 2
-                            Layout.alignment: Qt.AlignRight
-                            Text { 
-                                text: "⬆ " + backend.netTxSpeed
-                                color: "#FF9800" // 橙色
-                                font.family: "Monospace"
-                                font.bold: true
-                                font.pixelSize: 15
-                                Layout.alignment: Qt.AlignRight
-                                Layout.preferredWidth: 112
-                                horizontalAlignment: Text.AlignRight
-                            }
-                            Text { text: "Upload"; color: "#666"; font.pixelSize: 10; Layout.alignment: Qt.AlignRight }
+                        Rectangle { width: 1; height: 24; color: "#384050" }
+
+                        Text {
+                            text: "⬆ " + backend.netTxSpeed
+                            color: "#FF9800"
+                            font.pixelSize: 14
+                            font.family: "Monospace"
+                            font.bold: true
                         }
                     }
+
                     TapHandler {
                         id: netTap
                         enabled: !netPopup.visible
@@ -1023,142 +1079,73 @@ Window {
                     }
                 }
 
-                // --- Row 3: 历史数据图表 ---
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 500
-                    color: "#1e1e1e"
-                    radius: 12
-                    
+                    Layout.fillHeight: true
+                    color: "#1a1d23"
+                    radius: 14
+                    border.color: "#2c3038"
+                    border.width: 1
+
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 15 
-                        spacing: 5 // 减小间距，因为图表内部有 padding
+                        anchors.margins: 12
+                        spacing: 8
 
                         Text {
-                            text: "System History"
+                            text: "History"
                             color: "white"
                             font.pixelSize: 16
                             font.bold: true
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.bottomMargin: 5
                         }
 
-                        ColumnLayout {
+                        LineChart {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            spacing: 10
+                            chartTitle: "CPU Usage"
+                            datasets: [
+                                { label: "Total", values: backend.cpuHistory, color: "#FF5252" }
+                            ]
+                            fixedMax: 100
+                            suffix: "%"
+                        }
 
-                            LineChart {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                
-                                chartTitle: "CPU Usage"
-                                
-                                datasets: [
-                                    { 
-                                        label: "Total", 
-                                        values: backend.cpuHistory, 
-                                        color: "#FF5252" 
-                                    }
-                                ]
-                                fixedMax: 100
-                                suffix: "%"
-                            }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: "#323844"
+                        }
 
-                            Rectangle { 
-                                Layout.fillWidth: true; height: 3; color: "#333333" 
-                            }
+                        LineChart {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            chartTitle: "Memory Usage"
+                            datasets: [
+                                { label: "RAM", values: backend.memHistory, color: "#2196F3" }
+                            ]
+                            fixedMax: 100
+                            suffix: "%"
+                        }
 
-                            LineChart {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                
-                                chartTitle: "Memory Usage" // 【传入标题】
-                                
-                                datasets: [
-                                    { 
-                                        label: "RAM", 
-                                        values: backend.memHistory, 
-                                        color: "#2196F3" 
-                                    }
-                                ]
-                                fixedMax: 100
-                                suffix: "%"
-                            }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: "#323844"
+                        }
 
-                            Rectangle { 
-                                Layout.fillWidth: true; height: 3; color: "#333333" 
-                            }
-
-                            // 3. Network
-                            LineChart {
-                                Layout.fillWidth: true; Layout.fillHeight: true
-                                chartTitle: "Network I/O"
-                                
-                                // 双曲线
-                                datasets: [
-                                    { label: "Down", values: backend.netRxHistory, color: "#00E676" },
-                                    { label: "Up",   values: backend.netTxHistory, color: "#FF9800" }
-                                ]
-                                
-                                // 开启自动缩放
-                                fixedMax: -1 
-                                // 历史记录统一用 KB/s，避免单位跳变导致图表乱跳
-                                // (虽然主页卡片显示 MB/s，但折线图保持统一单位更稳定)
-                                suffix: " KB/s" 
-                            }
+                        LineChart {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            chartTitle: "Network I/O"
+                            datasets: [
+                                { label: "Down", values: backend.netRxHistory, color: "#00E676" },
+                                { label: "Up", values: backend.netTxHistory, color: "#FF9800" }
+                            ]
+                            fixedMax: -1
+                            suffix: " KB/s"
                         }
                     }
                 }
-                
-                // Item { height: 5 }
-
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: implicitWidth
-                    
-                    // 使用 RowLayout 让图标和文字并排
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 12
-                        
-                        IconImage {
-                            source: "qrc:/MyDesktop/Backend/assets/logo.svg"
-                            
-                            color: "white" 
-                            
-                            sourceSize.width: 32
-                            sourceSize.height: 32
-                            
-                            opacity: 0.85
-                        }
-                        
-                        ColumnLayout {
-                            spacing: 0
-                            
-                            Text {
-                                text: appName
-                                color: "#eeeeee" 
-                                font.pixelSize: 15
-                                font.bold: true
-                                font.letterSpacing: 1.5
-                                Layout.alignment: Qt.AlignLeft 
-                            }
-                            
-                            Text {
-                                text: "Build: " + appBuildHash
-                                color: "#aaaaaa"
-                                font.family: "Monospace"
-                                font.pixelSize: 10
-                                Layout.alignment: Qt.AlignLeft
-                            }
-                        }
-                    }
-                }
-
-                // 底部安全距离
-                // Item { height: 20 }
             }
         }
     }
