@@ -49,8 +49,11 @@ private:
         double cpuTotal = 0.0;
         QVariantList cpuGroups;
         QVariantList cpuHistory;
+        QVariantList cpuHistoryTs;
         QVariantList memHistory;
+        QVariantList memHistoryTs;
         QVariantList diskHistory;
+        QVariantList diskHistoryTs;
         double memPercent = 0.0;
         QString memDetail = QStringLiteral("--");
         QVariantMap memInfo;
@@ -60,7 +63,7 @@ private:
         QString loadAvg = QStringLiteral("--");
     };
 
-    void appendHistory(QVariantList &history, double value) const;
+    void appendHistory(QVariantList &history, QVariantList &historyTs, double value, const QDateTime &at) const;
     void applyTimerCadence();
     QString envValueAny(const QStringList &keys) const;
     void loadConfigFromEnv();

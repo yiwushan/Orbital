@@ -943,6 +943,8 @@ Window {
                         label: "CPU",
                         values: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuHistory)
                                 ? remoteCpuPopup.serverData.cpuHistory : [],
+                        xValues: (remoteCpuPopup.serverData && remoteCpuPopup.serverData.cpuHistoryTs)
+                                 ? remoteCpuPopup.serverData.cpuHistoryTs : [],
                         color: "#FF5252"
                     }
                 ]
@@ -1047,6 +1049,8 @@ Window {
                         label: "MEM",
                         values: (remoteMemPopup.serverData && remoteMemPopup.serverData.memHistory)
                                 ? remoteMemPopup.serverData.memHistory : [],
+                        xValues: (remoteMemPopup.serverData && remoteMemPopup.serverData.memHistoryTs)
+                                 ? remoteMemPopup.serverData.memHistoryTs : [],
                         color: "#2196F3"
                     }
                 ]
@@ -2121,7 +2125,12 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "CPU", values: serverData.cpuHistory || [], color: "#FF5252" }
+                                                    {
+                                                        label: "CPU",
+                                                        values: serverData.cpuHistory || [],
+                                                        xValues: serverData.cpuHistoryTs || [],
+                                                        color: "#FF5252"
+                                                    }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"
@@ -2189,7 +2198,12 @@ Window {
                                                 Layout.fillHeight: true
                                                 chartTitle: "History"
                                                 datasets: [
-                                                    { label: "MEM", values: serverData.memHistory || [], color: "#2196F3" }
+                                                    {
+                                                        label: "MEM",
+                                                        values: serverData.memHistory || [],
+                                                        xValues: serverData.memHistoryTs || [],
+                                                        color: "#2196F3"
+                                                    }
                                                 ]
                                                 fixedMax: -1
                                                 suffix: "%"

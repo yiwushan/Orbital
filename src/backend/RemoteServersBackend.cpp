@@ -15,7 +15,8 @@ namespace {
 
 constexpr int kHostCount = 2;
 constexpr int kCpuGroupCount = 8;
-constexpr int kHistoryLimit = 240;
+constexpr int kHistoryLimit = 800;
+constexpr qint64 kHistoryWindowMs = 60ll * 60ll * 1000ll;
 constexpr int kFastRefreshIntervalSec = 5;
 constexpr int kFastRefreshDurationSec = 60;
 
@@ -51,11 +52,25 @@ RemoteServersBackend::RemoteServersBackend(QObject *parent)
     QTimer::singleShot(1200, this, &RemoteServersBackend::refreshNow);
 }
 
-void RemoteServersBackend::appendHistory(QVariantList &history, double value) const
+void RemoteServersBackend::appendHistory(QVariantList &history, QVariantList &historyTs, double value, const QDateTime &at) const
 {
+    const qint64 ts = at.isValid() ? at.toMSecsSinceEpoch() : QDateTime::currentMSecsSinceEpoch();
     history.append(std::clamp(value, 0.0, 100.0));
-    while (history.size() > kHistoryLimit) {
+    historyTs.append(ts);
+
+    while (history.size() > kHistoryLimit || historyTs.size() > kHistoryLimit) {
         history.removeFirst();
+        if (!historyTs.isEmpty()) {
+            historyTs.removeFirst();
+        }
+    }
+
+    const qint64 cutoff = ts - kHistoryWindowMs;
+    while (!historyTs.isEmpty() && historyTs.first().toLongLong() < cutoff) {
+        historyTs.removeFirst();
+        if (!history.isEmpty()) {
+            history.removeFirst();
+        }
     }
 }
 
@@ -544,9 +559,9 @@ bool RemoteServersBackend::parseSnapshotOutput(HostState &host, const QString &o
         host.loadAvg = QStringLiteral("--");
     }
 
-    appendHistory(host.cpuHistory, host.cpuTotal * 100.0);
-    appendHistory(host.memHistory, host.memPercent * 100.0);
-    appendHistory(host.diskHistory, host.diskPercent * 100.0);
+    appendHistory(host.cpuHistory, host.cpuHistoryTs, host.cpuTotal * 100.0, host.lastUpdated);
+    appendHistory(host.memHistory, host.memHistoryTs, host.memPercent * 100.0, host.lastUpdated);
+    appendHistory(host.diskHistory, host.diskHistoryTs, host.diskPercent * 100.0, host.lastUpdated);
 
     return true;
 }
@@ -564,13 +579,16 @@ QVariantMap RemoteServersBackend::stateToMap(const HostState &host) const
     map[QStringLiteral("cpuTotal")] = host.cpuTotal;
     map[QStringLiteral("cpuGroups")] = host.cpuGroups;
     map[QStringLiteral("cpuHistory")] = host.cpuHistory;
+    map[QStringLiteral("cpuHistoryTs")] = host.cpuHistoryTs;
     map[QStringLiteral("memPercent")] = host.memPercent;
     map[QStringLiteral("memDetail")] = host.memDetail;
     map[QStringLiteral("memHistory")] = host.memHistory;
+    map[QStringLiteral("memHistoryTs")] = host.memHistoryTs;
     map[QStringLiteral("memInfo")] = host.memInfo;
     map[QStringLiteral("diskPercent")] = host.diskPercent;
     map[QStringLiteral("diskDetail")] = host.diskDetail;
     map[QStringLiteral("diskHistory")] = host.diskHistory;
+    map[QStringLiteral("diskHistoryTs")] = host.diskHistoryTs;
     map[QStringLiteral("diskPartitions")] = host.diskPartitions;
     map[QStringLiteral("loadAvg")] = host.loadAvg;
     map[QStringLiteral("lastUpdate")] = host.lastUpdated.isValid()

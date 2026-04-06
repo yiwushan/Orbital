@@ -94,6 +94,27 @@ Item {
                     ctx.moveTo(0, h); ctx.lineTo(w, h);
                     ctx.stroke();
 
+                    var hasTimedSeries = false;
+                    var globalMinX = Number.POSITIVE_INFINITY;
+                    var globalMaxX = Number.NEGATIVE_INFINITY;
+                    for (var s = 0; s < root.datasets.length; s++) {
+                        var sData = root.datasets[s].values;
+                        var sX = root.datasets[s].xValues;
+                        if (!sData || !sX || sX.length !== sData.length || sX.length < 1)
+                            continue;
+                        hasTimedSeries = true;
+                        for (var sx = 0; sx < sX.length; sx++) {
+                            var xv = Number(sX[sx]);
+                            if (!isFinite(xv))
+                                continue;
+                            if (xv < globalMinX) globalMinX = xv;
+                            if (xv > globalMaxX) globalMaxX = xv;
+                        }
+                    }
+                    if (hasTimedSeries && !(globalMaxX > globalMinX)) {
+                        globalMinX = globalMaxX - 1;
+                    }
+
                     // --- 绘制曲线 ---
                     function getY(val) { return h - (val / drawMax * h); }
 
@@ -101,11 +122,21 @@ Item {
                         var series = root.datasets[k];
                         var data = series.values;
                         var color = series.color;
+                        var xData = series.xValues;
 
                         if (!data || data.length < 1) continue;
 
                         var stepX = data.length > 1 ? w / (data.length - 1) : 0;
-                        function xOf(i) { return data.length > 1 ? i * stepX : w * 0.5; }
+                        var useTimed = hasTimedSeries && xData && xData.length === data.length;
+                        function xOf(i) {
+                            if (useTimed) {
+                                var xv = Number(xData[i]);
+                                if (!isFinite(xv))
+                                    return 0;
+                                return (xv - globalMinX) / (globalMaxX - globalMinX) * w;
+                            }
+                            return data.length > 1 ? i * stepX : w * 0.5;
+                        }
 
                         if (root.showLine && root.fillArea && data.length >= 2) {
                             // 填充
