@@ -15,6 +15,7 @@ Window {
 
     property bool historyExpanded: true
     property string screenshotToastMessage: ""
+    property bool personWakeDebugVisible: true
     property var remoteMemoryInfoKeys: [
         "Used", "Total", "Available", "Free",
         "Cached", "Buffers", "Swap Used", "Swap Free", "Swap Total"
@@ -26,6 +27,7 @@ Window {
     property int idlePulseDurationSec: 20
     property int idleDimBrightnessPercent: 55
     property int idlePulseBrightnessPercent: 35
+    property int idleWakeMinBrightnessPercent: 5
     property int idleSeconds: 0
     // 0=active, 1=dim, 2=black, 3=pulse
     property int idleDisplayState: 0
@@ -47,7 +49,7 @@ Window {
     function rememberInteractiveBrightness() {
         if (!backend)
             return
-        if (idleDisplayState === 0)
+        if (idleDisplayState === 0 && backend.brightness > 0)
             idleUserBrightness = clampBrightness(backend.brightness)
     }
 
@@ -56,7 +58,7 @@ Window {
             return
 
         if (newState === 0) {
-            setBrightnessSafely(idleUserBrightness)
+            setBrightnessSafely(Math.max(idleWakeMinBrightnessPercent, idleUserBrightness))
             idlePulseTimer.stop()
         } else if (newState === 1) {
             setBrightnessSafely(Math.min(idleUserBrightness, idleDimBrightnessPercent))
@@ -113,8 +115,14 @@ Window {
     }
 
     Component.onCompleted: {
-        if (backend)
-            idleUserBrightness = clampBrightness(backend.brightness)
+        if (backend) {
+            var initialBrightness = clampBrightness(backend.brightness)
+            if (initialBrightness <= 0) {
+                initialBrightness = 35
+                backend.brightness = initialBrightness
+            }
+            idleUserBrightness = initialBrightness
+        }
     }
 
     function remoteServerAt(index) {
@@ -1709,6 +1717,45 @@ Window {
         id: screenshotToastTimer
         interval: 1800
         onTriggered: screenshotToastMessage = ""
+    }
+
+    Rectangle {
+        id: personWakeDebugPanel
+        z: 2100
+        visible: window.personWakeDebugVisible && backend && backend.personWakeEnabled && window.idleDisplayState !== 2
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 8
+        anchors.bottomMargin: 8
+        width: Math.min(window.width - 16, 328)
+        height: 52
+        radius: 8
+        color: "#B3121418"
+        border.color: "#45699A"
+        border.width: 1
+
+        Column {
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 2
+
+            Text {
+                width: parent.width
+                text: "Wake " + (backend.personWakeEnabled ? "ON" : "OFF")
+                      + "  BRI " + backend.brightness + "%"
+                color: "#DCE8FF"
+                font.pixelSize: 10
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                text: backend.personWakeStatus || "status unavailable"
+                color: "#A9C2E8"
+                font.pixelSize: 9
+                elide: Text.ElideRight
+            }
+        }
     }
 
     // ================= MAIN UI =================

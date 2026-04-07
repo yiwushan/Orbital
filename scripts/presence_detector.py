@@ -37,24 +37,40 @@ def parse_args() -> argparse.Namespace:
 
 
 def capture_with_cam(camera_index: int, path: str) -> bool:
-    cmd = [
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+    base_cmd = [
         "cam",
         f"-c{camera_index}",
         "-C1",
         f"--file={path}",
         "--stream=role=viewfinder,width=640,height=480,pixelformat=RGB888",
     ]
-    try:
-        subprocess.run(
-            cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True,
-            timeout=6,
-        )
-        return os.path.exists(path) and os.path.getsize(path) > 0
-    except Exception:
-        return False
+
+    cmd_candidates = []
+    cam_user = os.getenv("ORBITAL_PERSON_WAKE_CAM_USER", "athbe").strip()
+    if os.geteuid() == 0 and cam_user:
+        cmd_candidates.append(["runuser", "-u", cam_user, "--"] + base_cmd)
+    cmd_candidates.append(base_cmd)
+
+    for cmd in cmd_candidates:
+        try:
+            subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+                timeout=6,
+            )
+            if os.path.exists(path) and os.path.getsize(path) > 0:
+                return True
+        except Exception:
+            continue
+
+    return False
 
 
 def run_cv2_mode(args: argparse.Namespace) -> int:
@@ -114,6 +130,11 @@ def run_cv2_mode(args: argparse.Namespace) -> int:
                 person_on = person_detected
                 emit(f"EVENT PERSON {1 if person_on else 0}")
 
+            emit(
+                "STATUS cv2-face faces=%d hit=%d/%d person=%d"
+                % (len(faces), hit_count, required_hits, 1 if person_detected else 0)
+            )
+
             frame_count += 1
             if frame_count % 60 == 0:
                 emit("STATUS watching(cv2-face)")
@@ -128,8 +149,11 @@ def run_cv2_mode(args: argparse.Namespace) -> int:
 
 
 def run_cam_motion_fallback(args: argparse.Namespace) -> int:
-    sample_s = max(0.8, args.sample_ms / 1000.0)
-    required_hits = max(1, args.required_hits)
+    # Thermal-friendly mode: fallback capture at most once per minute.
+    sample_s = max(60.0, args.sample_ms / 1000.0)
+    # Fallback mode can intermittently produce duplicated frames on some devices.
+    # Using single-hit detection improves wake responsiveness in this mode.
+    required_hits = 1
     threshold = max(1.0, args.motion_threshold)
     tmp_path = "/tmp/orbital_presence_frame.bin"
     prev_sample = None
@@ -155,10 +179,12 @@ def run_cam_motion_fallback(args: argparse.Namespace) -> int:
                 time.sleep(sample_s)
                 continue
 
-            # Downsample bytes directly for a cheap motion score on raw buffers.
-            sample = data[::128]
+            # Skip potential container headers/tails and sample the payload area.
+            # This avoids over-sampling metadata-like regions that may stay constant.
+            sample = data[4096:-4096:64] if len(data) > 8192 else data[::64]
             if prev_sample is None:
                 prev_sample = sample
+                emit("STATUS cam-motion warming_up")
                 time.sleep(sample_s)
                 continue
 
@@ -184,6 +210,11 @@ def run_cam_motion_fallback(args: argparse.Namespace) -> int:
             if person_detected != person_on:
                 person_on = person_detected
                 emit(f"EVENT PERSON {1 if person_on else 0}")
+
+            emit(
+                "STATUS cam-motion score=%.2f thr=%.2f hit=%d/%d person=%d"
+                % (motion_score, threshold, hit_count, required_hits, 1 if person_detected else 0)
+            )
 
             frame_count += 1
             if frame_count % 20 == 0:

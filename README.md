@@ -89,6 +89,7 @@ cmake --build build -j$(nproc)
 | 亮度调节 | `/sys/class/backlight/` 节点可写 |
 | LED 控制 | `/sys/class/leds/` 节点可写 |
 | 人在场唤醒（可选） | `python3-opencv`（摄像头检测） |
+| 内网页面服务（可选） | `python3`（标准库即可） |
 
 #### Debian / Ubuntu 运行时包
 ```bash
@@ -128,6 +129,19 @@ cd build
 | `--person-wake-cooldown-sec <秒>` | 两次自动唤醒最小间隔 | `20` |
 | `--person-wake-libcamera-index <数字>` | fallback 模式的 libcamera 相机索引 | `1` |
 | `--person-wake-motion-threshold <值>` | fallback 模式的运动检测阈值 | `12.0` |
+| `--web-enabled <0|1>` | 启用内网页面服务 | `1` |
+| `--web-bind <地址>` | 内网页面监听地址 | `0.0.0.0` |
+| `--web-port <端口>` | 内网页面监听端口 | `18911` |
+| `--web-auth-enabled <0|1>` | 启用内网页登录认证 | `0` |
+| `--web-user <用户名>` | 内网页登录用户名（仅在认证开启时生效） | `admin` |
+| `--web-password <密码>` | 内网页登录密码（仅在认证开启时生效） | `orbital123` |
+| `--web-show-remote-addr <0|1>` | 页面/API中显示远端地址 | `0` |
+| `--web-base-interval-sec <秒>` | 页面常规刷新采样周期 | `60` |
+| `--web-burst-interval-sec <秒>` | 页面密集刷新采样周期 | `5` |
+| `--web-burst-duration-sec <秒>` | 登录后密集刷新持续时长 | `180` |
+| `--web-session-hours <小时>` | 页面登录会话过期时间 | `8` |
+| `--web-remote-timeout-sec <秒>` | 页面远端 SSH 采集超时 | `7` |
+| `--web-log-path <路径>` | 页面服务日志路径 | `./orbital_web.log` |
 
 `run.sh` 使用 `QT_QPA_PLATFORM=eglfs`，直接在 framebuffer 上运行，无需 X11 或 Wayland。
 
@@ -149,12 +163,27 @@ cd build
 | `ORBITAL_PERSON_WAKE_COOLDOWN_SEC` | 自动唤醒冷却时间（秒） | `20` |
 | `ORBITAL_PERSON_WAKE_LIBCAMERA_INDEX` | fallback 模式的 libcamera 相机索引 | `1` |
 | `ORBITAL_PERSON_WAKE_MOTION_THRESHOLD` | fallback 模式的运动检测阈值 | `12.0` |
+| `ORBITAL_WEB_ENABLED` | 启用内网页面服务 | `1` |
+| `ORBITAL_WEB_BIND` | 页面监听地址 | `0.0.0.0` |
+| `ORBITAL_WEB_PORT` | 页面监听端口 | `18911` |
+| `ORBITAL_WEB_AUTH_ENABLED` | 页面登录认证开关 | `0` |
+| `ORBITAL_WEB_USER` | 页面登录用户名（仅在认证开启时生效） | `admin` |
+| `ORBITAL_WEB_PASSWORD` | 页面登录密码（仅在认证开启时生效） | `orbital123` |
+| `ORBITAL_WEB_SHOW_REMOTE_ADDR` | 页面/API中显示远端地址 | `0` |
+| `ORBITAL_WEB_BASE_INTERVAL_SEC` | 页面常规采样周期（秒） | `60` |
+| `ORBITAL_WEB_BURST_INTERVAL_SEC` | 页面密集采样周期（秒） | `5` |
+| `ORBITAL_WEB_BURST_DURATION_SEC` | 登录触发密集刷新时长（秒） | `180` |
+| `ORBITAL_WEB_SESSION_HOURS` | 登录会话过期（小时） | `8` |
+| `ORBITAL_WEB_REMOTE_TIMEOUT_SEC` | 页面远端 SSH 超时（秒） | `7` |
+| `ORBITAL_WEB_LOG_PATH` | 页面服务日志路径 | `./orbital_web.log` |
 
 说明：
 - 建议使用 SSH key 免密登录（`BatchMode=yes`），避免交互阻塞。
 - 默认远端轮询周期是 `60` 秒（可通过 `ORBITAL_REMOTE_INTERVAL_SEC` 或 `--remote-interval-sec` 调整）。
 - 用户点击远端卡片后会进入临时加速刷新：`5` 秒/次，持续 `60` 秒，然后自动恢复到基础周期。
-- 远端历史图使用散点并按真实时间戳绘制（`5s` 与 `60s` 采样在同一时间轴上间距不同）。
+- 访问内网页面（或登录成功）会触发页面端密集采样：`5` 秒/次，持续 `180` 秒（可通过 web 环境变量调整）。
+- 内网页面访问地址：`http://<设备IP>:18911/`；默认免密，如需认证可开启 `ORBITAL_WEB_AUTH_ENABLED=1` 并修改账号密码。
+- 历史图按真实时间戳绘制（`5s` 与 `60s` 采样在同一时间轴上间距不同）。
 - 远端历史窗口为最近 `1` 小时。
 - 在场唤醒优先使用 OpenCV 人脸检测；若 `/dev/video*` 无法直接读取，会自动切换到 `cam` 原始帧运动检测 fallback。
 

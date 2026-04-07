@@ -151,3 +151,4 @@ endif()
 # 将scripts/run.sh复制到构建目录
 configure_file(${CMAKE_SOURCE_DIR}/scripts/run.sh ${CMAKE_BINARY_DIR}/run.sh COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/scripts/presence_detector.py ${CMAKE_BINARY_DIR}/presence_detector.py COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/scripts/orbital_web.py ${CMAKE_BINARY_DIR}/orbital_web.py COPYONLY)
